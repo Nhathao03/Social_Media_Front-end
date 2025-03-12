@@ -1,7 +1,7 @@
-import Header from "../components/Header";
-import LeftSidebar from "../components/LeftSidebar";
-import RightSidebar from "../components/RightSidebar";
-import Footer from "../components/Footer";
+import Header from "../layout/Header";
+import LeftSidebar from "../layout/LeftSidebar";
+import RightSidebar from "../layout/RightSidebar";
+import Footer from "../layout/Footer";
 import { createpost, getAllPost, deletePostById } from "../services/post";
 import { getUserById } from "../services/user";
 import { useEffect, useState } from "react";
@@ -324,7 +324,7 @@ const GetAllPost = () => {
                                     <div className="w-100">
                                         <div className="d-flex justify-content-between">
                                             <div className="">
-                                                <h5 className="mb-0 d-inline-block">{post.username}</h5>
+                                                <h5 className="mb-0 d-inline-block"><a href={`/profile/${post.userID}`}>{post.username}</a></h5>
                                                 <span className="mb-0 d-inline-block">Add New Post</span>
                                                 <p className="mb-0 text-primary">{formatDate(post.createdAt)}</p>
                                             </div>
@@ -493,8 +493,8 @@ const GetAllPost = () => {
                                         onChange={(e) => setContent(e.target.value)}
                                     />
                                     <div className="comment-attagement d-flex">
-                                        <button type="submit" className="btn btn-primary">
-                                            Post
+                                        <button style={{ border: "none" }} type="submit" aria-label="Send">
+                                            <i class="fa fa-paper-plane" aria-hidden="true"></i>
                                         </button>
                                         <a href="javascript:void();"><i className="ri-user-smile-line me-3"></i></a>
                                         <label><input type="file" onChange={handleChangeImage} hidden multiple /><i className="ri-camera-line me-3"></i></label>

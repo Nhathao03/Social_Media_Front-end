@@ -1,9 +1,9 @@
-import Header from "../components/Header";
-import LeftSidebar from "../components/LeftSidebar";
-import RightSidebar from "../components/RightSidebar";
-import Footer from "../components/Footer";
+import Header from "../layout/Header";
+import LeftSidebar from "../layout/LeftSidebar";
+import RightSidebar from "../layout/RightSidebar";
+import Footer from "../layout/Footer";
 import Home from "./Home";
-import Profile from "./Profile";
+import Profile from "./MyProfile";
 export default function Layout() {
     return (
         <div className="wrapper">

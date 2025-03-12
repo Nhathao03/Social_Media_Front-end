@@ -7,7 +7,7 @@ export const createComment = async (userID, postID, Content, ImageUrl, sticker) 
         userID : userID.id,
         postID,
         Content,
-        ImageUrl : ImageUrl[0].Url,
+        ImageUrl : ImageUrl[0] == null ? "" : ImageUrl[0].Url,
         sticker : 0,
     }, {
         headers: {

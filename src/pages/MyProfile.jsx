@@ -2,7 +2,6 @@ import Header from "../layout/Header";
 import LeftSidebar from "../layout/LeftSidebar";
 import RightSidebar from "../layout/RightSidebar";
 import Footer from "../layout/Footer";
-import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getUserById } from "../services/user";
 import { deletePostById, getPostByUserID } from "../services/post";
@@ -10,10 +9,8 @@ import { AddLike } from "../services/likes";
 import { createComment } from "../services/comment";
 import { uploadfile, UploadFileComment } from "../services/uploadfile";
 
-export default function Profile() {
-    const [accountID, setMyAccountID] = useState(null);
-    const [userData, setuserData] = useState(null);
-    const { userID } = useParams();
+export default function MyProfile() {
+    const [user, setUser] = useState(null);
     // get Username base on token in local storage
     useEffect(() => {
         const fetchUser = async () => {
@@ -23,8 +20,8 @@ export default function Profile() {
                     console.error("No user ID found in localStorage");
                     return;
                 }
-                const response = await getUserById(storedUserId);
-                setMyAccountID(response.data);
+                const userData = await getUserById(storedUserId);
+                setUser(userData.data);
             } catch (error) {
                 console.error("Failed to fetch user:", error);
             }
@@ -32,19 +29,6 @@ export default function Profile() {
         fetchUser();
     }, []);
 
-    //get information user to display in profile 
-    useEffect(() => {
-        const fetchUserByuserID = async () => {
-            if (!userID) return;
-            try {
-                const response = await getUserById(userID);
-                setuserData(response.data)
-            } catch (err) {
-                console.error("Failed to fetch user:", err);
-            }
-        }
-        fetchUserByuserID();
-    }, [userID]);
     return (
         <div className="wrapper">
             <Header />
@@ -54,12 +38,12 @@ export default function Profile() {
                 <div className="container">
                     <div className="row">
                         <div className="col-sm-12">
-                            <ProfilePage userData={userData} />
+                            <ProfilePage user={user} />
                             <Tag />
                         </div>
                         <div className="col-sm-12">
                             <div className="tab-content">
-                                <TimeLine userData={userData} />
+                                <TimeLine user={user} />
                                 <About />
                                 <Friends />
                                 <Photos />
@@ -72,31 +56,31 @@ export default function Profile() {
         </div>
     )
 }
-
-const ProfilePage = ({ userData }) => {
+const ProfilePage = ({ user }) => {
     const [countPosts, setCountPosts] = useState(0);
+
     useEffect(() => {
         const fetchPost = async () => {
-            if (!userData) return;
+            if (!user) return;
             try {
-                const response = await getPostByUserID(userData.id);
+                const response = await getPostByUserID(user.id);
                 setCountPosts(response.data.length);
             } catch (err) {
                 console.error("Failed to fetch posts:", err);
             }
         };
         fetchPost();
-    }, [userData]);
+    }, [user]);
 
     return (
         <div className="card">
             <div className="card-body profile-page p-0">
-                {userData ? (
+                {user ? (
 
                     <div className="profile-header">
 
                         <div className="position-relative">
-                            <img src="/src/assets/images/page-img/profile-bg1.jpg" alt="profile-bg" className="rounded img-fluid" />
+                            <img src="src/assets/images/page-img/profile-bg1.jpg" alt="profile-bg" className="rounded img-fluid" />
                             <ul className="header-nav list-inline d-flex flex-wrap justify-end p-0 m-0">
                                 <li><a href="#"><i className="ri-pencil-line"></i></a></li>
                                 <li><a href="#"><i className="ri-settings-4-line"></i></a></li>
@@ -104,10 +88,10 @@ const ProfilePage = ({ userData }) => {
                         </div>
                         <div className="user-detail text-center mb-3">
                             <div className="profile-img">
-                                <img src="/src/assets/images/user/11.png" alt="profile-img" className="avatar-130 img-fluid" />
+                                <img src="./src/assets/images/user/11.png" alt="profile-img" className="avatar-130 img-fluid" />
                             </div>
                             <div className="profile-detail">
-                                <h3 className="">{userData.fullname}</h3>
+                                <h3 className="">{user.fullname}</h3>
                             </div>
                         </div>
                         <div className="profile-info p-3 d-flex align-items-center justify-content-between position-relative">
@@ -160,13 +144,13 @@ const Tag = () => {
     );
 }
 
-const TimeLine = ({ userData }) => {
+const TimeLine = ({ user }) => {
     return (
         <div className="tab-pane fade show active" id="timeline" role="tabpanel">
             <div className="card-body p-0">
                 <div className="row">
                     <TimeLineLeftContent />
-                    <TimeLineRightContent userData={userData} />
+                    <TimeLineRightContent user={user} />
                 </div>
             </div>
         </div>
@@ -194,7 +178,7 @@ const TimeLineLeftContent = () => {
                     <div className="row">
                         <div className="col-sm-12">
                             <div className="event-post position-relative">
-                                <a href="#"><img src="/src/assets/images/page-img/07.jpg" alt="gallary-image" className="img-fluid rounded" /></a>
+                                <a href="#"><img src="./src/assets/images/page-img/07.jpg" alt="gallary-image" className="img-fluid rounded" /></a>
                                 <div className="job-icon-position">
                                     <div className="job-icon bg-primary p-2 d-inline-block rounded-circle"><i className="ri-briefcase-line text-white"></i></div>
                                 </div>
@@ -206,7 +190,7 @@ const TimeLineLeftContent = () => {
                         </div>
                         <div className="col-sm-12">
                             <div className="event-post position-relative">
-                                <a href="#"><img src="/src/assets/images/page-img/06.jpg" alt="gallary-image" className="img-fluid rounded" /></a>
+                                <a href="#"><img src="./src/assets/images/page-img/06.jpg" alt="gallary-image" className="img-fluid rounded" /></a>
                                 <div className="job-icon-position">
                                     <div className="job-icon bg-primary p-2 d-inline-block rounded-circle"><i className="ri-briefcase-line text-white"></i></div>
                                 </div>
@@ -230,15 +214,15 @@ const TimeLineLeftContent = () => {
                 </div>
                 <div className="card-body">
                     <ul className="profile-img-gallary p-0 m-0 list-unstyled">
-                        <li className=""><a href="#"><img src="/src/assets/images/page-img/g1.jpg" alt="gallary-image" className="img-fluid" /></a></li>
-                        <li className=""><a href="#"><img src="/src/assets/images/page-img/g2.jpg" alt="gallary-image" className="img-fluid" /></a></li>
-                        <li className=""><a href="#"><img src="/src/assets/images/page-img/g3.jpg" alt="gallary-image" className="img-fluid" /></a></li>
-                        <li className=""><a href="#"><img src="/src/assets/images/page-img/g4.jpg" alt="gallary-image" className="img-fluid" /></a></li>
-                        <li className=""><a href="#"><img src="/src/assets/images/page-img/g5.jpg" alt="gallary-image" className="img-fluid" /></a></li>
-                        <li className=""><a href="#"><img src="/src/assets/images/page-img/g6.jpg" alt="gallary-image" className="img-fluid" /></a></li>
-                        <li className=""><a href="#"><img src="/src/assets/images/page-img/g7.jpg" alt="gallary-image" className="img-fluid" /></a></li>
-                        <li className=""><a href="#"><img src="/src/assets/images/page-img/g8.jpg" alt="gallary-image" className="img-fluid" /></a></li>
-                        <li className=""><a href="#"><img src="/src/assets/images/page-img/g9.jpg" alt="gallary-image" className="img-fluid" /></a></li>
+                        <li className=""><a href="#"><img src="./src/assets/images/page-img/g1.jpg" alt="gallary-image" className="img-fluid" /></a></li>
+                        <li className=""><a href="#"><img src="./src/assets/images/page-img/g2.jpg" alt="gallary-image" className="img-fluid" /></a></li>
+                        <li className=""><a href="#"><img src="./src/assets/images/page-img/g3.jpg" alt="gallary-image" className="img-fluid" /></a></li>
+                        <li className=""><a href="#"><img src="./src/assets/images/page-img/g4.jpg" alt="gallary-image" className="img-fluid" /></a></li>
+                        <li className=""><a href="#"><img src="./src/assets/images/page-img/g5.jpg" alt="gallary-image" className="img-fluid" /></a></li>
+                        <li className=""><a href="#"><img src="./src/assets/images/page-img/g6.jpg" alt="gallary-image" className="img-fluid" /></a></li>
+                        <li className=""><a href="#"><img src="./src/assets/images/page-img/g7.jpg" alt="gallary-image" className="img-fluid" /></a></li>
+                        <li className=""><a href="#"><img src="./src/assets/images/page-img/g8.jpg" alt="gallary-image" className="img-fluid" /></a></li>
+                        <li className=""><a href="#"><img src="./src/assets/images/page-img/g9.jpg" alt="gallary-image" className="img-fluid" /></a></li>
                     </ul>
                 </div>
             </div>
@@ -255,39 +239,39 @@ const TimeLineLeftContent = () => {
                     <ul className="profile-img-gallary p-0 m-0 list-unstyled">
                         <li className="">
                             <a href="#">
-                                <img src="/src/assets/images/user/05.jpg" alt="gallary-image" className="img-fluid" /></a>
+                                <img src="./src/assets/images/user/05.jpg" alt="gallary-image" className="img-fluid" /></a>
                             <h6 className="mt-2 text-center">Anna Rexia</h6>
                         </li>
                         <li className="">
-                            <a href="#"><img src="/src/assets/images/user/06.jpg" alt="gallary-image" className="img-fluid" /></a>
+                            <a href="#"><img src="./src/assets/images/user/06.jpg" alt="gallary-image" className="img-fluid" /></a>
                             <h6 className="mt-2 text-center">Tara Zona</h6>
                         </li>
                         <li className="">
-                            <a href="#"><img src="/src/assets/images/user/07.jpg" alt="gallary-image" className="img-fluid" /></a>
+                            <a href="#"><img src="./src/assets/images/user/07.jpg" alt="gallary-image" className="img-fluid" /></a>
                             <h6 className="mt-2 text-center">Polly Tech</h6>
                         </li>
                         <li className="">
-                            <a href="#"><img src="/src/assets/images/user/08.jpg" alt="gallary-image" className="img-fluid" /></a>
+                            <a href="#"><img src="./src/assets/images/user/08.jpg" alt="gallary-image" className="img-fluid" /></a>
                             <h6 className="mt-2 text-center">Bill Emia</h6>
                         </li>
                         <li className="">
-                            <a href="#"><img src="/src/assets/images/user/09.jpg" alt="gallary-image" className="img-fluid" /></a>
+                            <a href="#"><img src="./src/assets/images/user/09.jpg" alt="gallary-image" className="img-fluid" /></a>
                             <h6 className="mt-2 text-center">Moe Fugga</h6>
                         </li>
                         <li className="">
-                            <a href="#"><img src="/src/assets/images/user/10.jpg" alt="gallary-image" className="img-fluid" /></a>
+                            <a href="#"><img src="./src/assets/images/user/10.jpg" alt="gallary-image" className="img-fluid" /></a>
                             <h6 className="mt-2 text-center">Hal Appeno </h6>
                         </li>
                         <li className="">
-                            <a href="#"><img src="/src/assets/images/user/07.jpg" alt="gallary-image" className="img-fluid" /></a>
+                            <a href="#"><img src="./src/assets/images/user/07.jpg" alt="gallary-image" className="img-fluid" /></a>
                             <h6 className="mt-2 text-center">Zack Lee</h6>
                         </li>
                         <li className="">
-                            <a href="#"><img src="/src/assets/images/user/06.jpg" alt="gallary-image" className="img-fluid" /></a>
+                            <a href="#"><img src="./src/assets/images/user/06.jpg" alt="gallary-image" className="img-fluid" /></a>
                             <h6 className="mt-2 text-center">Terry Aki</h6>
                         </li>
                         <li className="">
-                            <a href="#"><img src="/src/assets/images/user/05.jpg" alt="gallary-image" className="img-fluid" /></a>
+                            <a href="#"><img src="./src/assets/images/user/05.jpg" alt="gallary-image" className="img-fluid" /></a>
                             <h6 className="mt-2 text-center">Greta Life</h6>
                         </li>
                     </ul>
@@ -373,7 +357,7 @@ const CreatePost = () => {
                     <div className="d-flex align-items-center">
                         <div className="user-img">
                             <img
-                                src="/src/assets/images/user/1.jpg"
+                                src="./src/assets/images/user/1.jpg"
                                 alt="User"
                                 className="avatar-60 rounded-circle"
                             />
@@ -395,7 +379,7 @@ const CreatePost = () => {
                             <label className="btn btn-soft-primary">
                                 <input type="file" onChange={handleChangeImage} hidden multiple />
                                 <img
-                                    src="/src/assets/images/small/07.png"
+                                    src="./src/assets/images/small/07.png"
                                     alt="icon"
                                     className="img-fluid me-2"
                                 />
@@ -405,7 +389,7 @@ const CreatePost = () => {
                         <li className="me-3 mb-md-0 mb-2">
                             <button type="button" className="btn btn-soft-primary">
                                 <img
-                                    src="/src/assets/images/small/08.png"
+                                    src="./src/assets/images/small/08.png"
                                     alt="icon"
                                     className="img-fluid me-2"
                                 />
@@ -415,7 +399,7 @@ const CreatePost = () => {
                         <li className="me-3">
                             <button type="button" className="btn btn-soft-primary">
                                 <img
-                                    src="/src/assets/images/small/09.png"
+                                    src="./src/assets/images/small/09.png"
                                     alt="icon"
                                     className="img-fluid me-2"
                                 />
@@ -434,7 +418,7 @@ const CreatePost = () => {
     );
 }
 
-const TimeLineRightContent = ({ userData }) => {
+const TimeLineRightContent = ({ user }) => {
     const [posts, setPosts] = useState([]);
     const [content, setContent] = useState("");
     const sticker = useState("");
@@ -443,9 +427,9 @@ const TimeLineRightContent = ({ userData }) => {
 
     useEffect(() => {
         const fetchPosts = async () => {
-            if (!userData) return;
+            if (!user) return;
             try {
-                const postData = await getPostByUserID(userData.id);
+                const postData = await getPostByUserID(user.id);
                 const postsWithUsernames = await Promise.all(
                     postData.data.map(async (post) => {
                         // Fetch usernames for each comment author
@@ -471,7 +455,8 @@ const TimeLineRightContent = ({ userData }) => {
             }
         };
         fetchPosts();
-    }, [userData]);
+    }, [user]);
+
     //delete post
     const deletePost = async (id) => {
         try {
@@ -481,10 +466,12 @@ const TimeLineRightContent = ({ userData }) => {
             console.error("Failed to delete post:", error);
         }
     };
+
     // format date
     const formatDate = (dateString) => {
         return new Date(dateString).toISOString().split("T")[0];
     };
+
     //Check image if have change
     const handleChangeImage = async (e) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -503,47 +490,47 @@ const TimeLineRightContent = ({ userData }) => {
     //handle submit comment
     const handleSubmitComment = async (e, postID) => {
         e.preventDefault();
-        if (!userData) {
+        if (!user) {
             setError("User ID not found. Please log in again.");
             return;
         }
         try {
-            await createComment(userData, postID, content, ImageCmt, sticker);
+            await createComment(user, postID, content, ImageCmt, sticker);
             setMessage("Comment created successfully!");
         } catch (error) {
             setMessage(error.response?.data || "Failed to create comment.");
         }
     }
+
     //handle add like post
     const handleAddLike = async (postID) => {
-        if (!userData) {
+        if (!user) {
             setError("User ID not found. Please log in again.");
             return;
         }
         try {
-            await AddLike(userData.id, postID);
+            await AddLike(user.id, postID);
         } catch (error) {
             setMessage(error.response?.data || "Failed to add like.");
         }
     }
+
     return (
         <div className="col-lg-8">
-
-            {posts.length > 0 ? (
-            posts.map((post) => (
-                <div className="card" key={post.id}>
+            {posts.map((post, index) => (
+                <div className="card" key={index}>
                     <div className="card-body">
                         <div className="post-item">
                             <div className="user-post-data pb-3">
                                 <div className="d-flex justify-content-between">
                                     <div className="me-3">
-                                        <img className="rounded-circle  avatar-60" src="/src/assets/images/user/1.jpg" alt="" />
+                                        <img className="rounded-circle  avatar-60" src="./src/assets/images/user/1.jpg" alt="" />
                                     </div>
                                     <div className="w-100">
                                         <div className="d-flex justify-content-between flex-wrap">
                                             <div className="">
-                                                {userData ? (
-                                                    <h5 className="mb-0 d-inline-block"><a href="#" className="">{userData.fullname}</a></h5>
+                                                {user ? (
+                                                    <h5 className="mb-0 d-inline-block"><a href={`/profile/${user.id}`}>{user.fullname}</a></h5>
                                                 ) : null}
                                                 <p className="ms-1 mb-0 d-inline-block">Add New Post</p>
                                                 {/* <p className="mb-0">{formatDate(post.createAt)}</p> */}
@@ -628,16 +615,16 @@ const TimeLineRightContent = ({ userData }) => {
                                             <div className="like-data">
                                                 <div className="dropdown">
                                                     <span className="dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="button">
-                                                        <img src="/src/assets/images/icon/01.png" className="img-fluid" alt="" />
+                                                        <img src="./src/assets/images/icon/01.png" className="img-fluid" alt="" />
                                                     </span>
                                                     <div className="dropdown-menu py-2">
-                                                        <a className="ms-2 me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Like"><img src="/src/assets/images/icon/01.png" className="img-fluid" alt="" /></a>
-                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Love"><img src="/src/assets/images/icon/02.png" className="img-fluid" alt="" /></a>
-                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Happy"><img src="/src/assets/images/icon/03.png" className="img-fluid" alt="" /></a>
-                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="HaHa"><img src="/src/assets/images/icon/04.png" className="img-fluid" alt="" /></a>
-                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Think"><img src="/src/assets/images/icon/05.png" className="img-fluid" alt="" /></a>
-                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Sade"><img src="/src/assets/images/icon/06.png" className="img-fluid" alt="" /></a>
-                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Lovely"><img src="/src/assets/images/icon/07.png" className="img-fluid" alt="" /></a>
+                                                        <a className="ms-2 me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Like"><img src="./src/assets/images/icon/01.png" className="img-fluid" alt="" /></a>
+                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Love"><img src="./src/assets/images/icon/02.png" className="img-fluid" alt="" /></a>
+                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Happy"><img src="./src/assets/images/icon/03.png" className="img-fluid" alt="" /></a>
+                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="HaHa"><img src="./src/assets/images/icon/04.png" className="img-fluid" alt="" /></a>
+                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Think"><img src="./src/assets/images/icon/05.png" className="img-fluid" alt="" /></a>
+                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Sade"><img src="./src/assets/images/icon/06.png" className="img-fluid" alt="" /></a>
+                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Lovely"><img src="./src/assets/images/icon/07.png" className="img-fluid" alt="" /></a>
                                                     </div>
                                                 </div>
                                             </div>
@@ -686,7 +673,7 @@ const TimeLineRightContent = ({ userData }) => {
                                         <li className="mb-2">
                                             <div className="d-flex">
                                                 <div className="user-img">
-                                                    <img src="/src/assets/images/user/02.jpg" alt="userimg" className="avatar-35 rounded-circle img-fluid" />
+                                                    <img src="./src/assets/images/user/02.jpg" alt="userimg" className="avatar-35 rounded-circle img-fluid" />
                                                 </div>
                                                 <div className="comment-data-block ms-3">
                                                     <h6>{comment.username_comment}</h6>
@@ -711,7 +698,7 @@ const TimeLineRightContent = ({ userData }) => {
                                         onChange={(e) => setContent(e.target.value)}
                                     />
                                     <div className="comment-attagement d-flex">
-                                        <button style={{ border: "none" }} type="submit" aria-label="Send">
+                                        <button style={{border:"none"}} type="submit" aria-label="Send">
                                             <i class="fa fa-paper-plane" aria-hidden="true"></i>
                                         </button>
                                         <a href="javascript:void();"><i className="ri-user-smile-line me-3"></i></a>
@@ -722,7 +709,7 @@ const TimeLineRightContent = ({ userData }) => {
                         </div>
                     </div>
                 </div>
-            ))) : (<p style={{textAlign: "center"}}>No post</p>)}
+            ))}
         </div>
     );
 }
@@ -863,7 +850,7 @@ const AboutRightContent = () => {
                             </div>
                         </li>
                         <li className="d-flex mb-4 align-items-center justify-content-between">
-                            <div className="user-img img-fluid"><img src="/src/assets/images/user/01.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
+                            <div className="user-img img-fluid"><img src="./src/assets/images/user/01.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
                             <div className="w-100">
                                 <div className="d-flex justify-content-between">
                                     <div className="ms-3">
@@ -875,7 +862,7 @@ const AboutRightContent = () => {
                             </div>
                         </li>
                         <li className="d-flex justify-content-between mb-4  align-items-center">
-                            <div className="user-img img-fluid"><img src="/src/assets/images/user/02.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
+                            <div className="user-img img-fluid"><img src="./src/assets/images/user/02.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
                             <div className="w-100">
                                 <div className="d-flex flex-wrap justify-content-between">
                                     <div className=" ms-3">
@@ -887,7 +874,7 @@ const AboutRightContent = () => {
                             </div>
                         </li>
                         <li className="d-flex mb-4 align-items-center justify-content-between">
-                            <div className="user-img img-fluid"><img src="/src/assets/images/user/03.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
+                            <div className="user-img img-fluid"><img src="./src/assets/images/user/03.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
                             <div className="w-100">
                                 <div className="d-flex justify-content-between">
                                     <div className="ms-3">
@@ -910,7 +897,7 @@ const AboutRightContent = () => {
                             </div>
                         </li>
                         <li className="d-flex mb-4 align-items-center justify-content-between">
-                            <div className="user-img img-fluid"><img src="/src/assets/images/user/01.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
+                            <div className="user-img img-fluid"><img src="./src/assets/images/user/01.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
                             <div className="w-100">
                                 <div className="d-flex justify-content-between">
                                     <div className="ms-3">
@@ -922,7 +909,7 @@ const AboutRightContent = () => {
                             </div>
                         </li>
                         <li className="d-flex mb-4 align-items-center justify-content-between">
-                            <div className="user-img img-fluid"><img src="/src/assets/images/user/02.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
+                            <div className="user-img img-fluid"><img src="./src/assets/images/user/02.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
                             <div className="w-100">
                                 <div className="d-flex flex-wrap justify-content-between">
                                     <div className="ms-3">
@@ -934,7 +921,7 @@ const AboutRightContent = () => {
                             </div>
                         </li>
                         <li className="d-flex mb-4 align-items-center justify-content-between">
-                            <div className="user-img img-fluid"><img src="/src/assets/images/user/03.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
+                            <div className="user-img img-fluid"><img src="./src/assets/images/user/03.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
                             <div className="w-100">
                                 <div className="d-flex flex-wrap justify-content-between">
                                     <div className="ms-3">
@@ -964,7 +951,7 @@ const AboutRightContent = () => {
                             </div>
                         </li>
                         <li className="d-flex mb-4 align-items-center">
-                            <div className="user-img img-fluid"><img src="/src/assets/images/user/01.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
+                            <div className="user-img img-fluid"><img src="./src/assets/images/user/01.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
                             <div className="w-100">
                                 <div className="d-flex flex-wrap justify-content-between">
                                     <div className="ms-3">
@@ -981,7 +968,7 @@ const AboutRightContent = () => {
                     <h4 className="mb-3">Current City and Hometown</h4>
                     <ul className="suggestions-lists m-0 p-0">
                         <li className="d-flex mb-4 align-items-center justify-content-between">
-                            <div className="user-img img-fluid"><img src="/src/assets/images/user/01.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
+                            <div className="user-img img-fluid"><img src="./src/assets/images/user/01.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
                             <div className="w-100">
                                 <div className="d-flex flex-wrap justify-content-between">
                                     <div className="ms-3">
@@ -993,7 +980,7 @@ const AboutRightContent = () => {
                             </div>
                         </li>
                         <li className="d-flex mb-4 align-items-center justify-content-between">
-                            <div className="user-img img-fluid"><img src="/src/assets/images/user/02.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
+                            <div className="user-img img-fluid"><img src="./src/assets/images/user/02.jpg" alt="story-img" className="rounded-circle avatar-40" /></div>
                             <div className="w-100">
                                 <div className="d-flex flex-wrap justify-content-between">
                                     <div className="ms-3">
@@ -1061,7 +1048,7 @@ const Friends = () => {
                                                 <div className="d-flex align-items-center justify-content-between">
                                                     <div className="d-flex align-items-center">
                                                         <a href="#">
-                                                            <img src="/src/assets/images/user/05.jpg" alt="profile-img" className="img-fluid" />
+                                                            <img src="./src/assets/images/user/05.jpg" alt="profile-img" className="img-fluid" />
                                                         </a>
                                                         <div className="friend-info ms-3">
                                                             <h5>Petey Cruiser</h5>
@@ -1096,7 +1083,7 @@ const Friends = () => {
                                                 <div className="d-flex align-items-center justify-content-between">
                                                     <div className="d-flex align-items-center">
                                                         <a href="#">
-                                                            <img src="/src/assets/images/user/17.jpg" alt="profile-img" className="img-fluid" />
+                                                            <img src="./src/assets/images/user/17.jpg" alt="profile-img" className="img-fluid" />
                                                         </a>
                                                         <div className="friend-info ms-3">
                                                             <h5>Hal Appeno</h5>
@@ -1131,7 +1118,7 @@ const Friends = () => {
                                                 <div className="d-flex align-items-center justify-content-between">
                                                     <div className="d-flex align-items-center">
                                                         <a href="#">
-                                                            <img src="/src/assets/images/user/07.jpg" alt="profile-img" className="img-fluid" />
+                                                            <img src="./src/assets/images/user/07.jpg" alt="profile-img" className="img-fluid" />
                                                         </a>
                                                         <div className="friend-info ms-3">
                                                             <h5>Maya Didas</h5>
@@ -1166,7 +1153,7 @@ const Friends = () => {
                                                 <div className="d-flex align-items-center justify-content-between">
                                                     <div className="d-flex align-items-center">
                                                         <a href="#">
-                                                            <img src="/src/assets/images/user/10.jpg" alt="profile-img" className="img-fluid" />
+                                                            <img src="./src/assets/images/user/10.jpg" alt="profile-img" className="img-fluid" />
                                                         </a>
                                                         <div className="friend-info ms-3">
                                                             <h5>Anna Mull</h5>
@@ -1223,7 +1210,7 @@ const Photos = () => {
                                         <div className="">
                                             <div className="user-images position-relative overflow-hidden">
                                                 <a href="#">
-                                                    <img src="/src/assets/images/page-img/59.jpg" className="img-fluid rounded" alt="Responsive image" />
+                                                    <img src="./src/assets/images/page-img/59.jpg" className="img-fluid rounded" alt="Responsive image" />
                                                 </a>
                                                 <div className="image-hover-data">
                                                     <div className="product-elements-icon">
@@ -1246,7 +1233,7 @@ const Photos = () => {
                                         <div className="">
                                             <div className="user-images position-relative overflow-hidden">
                                                 <a href="#">
-                                                    <img src="/src/assets/images/page-img/60.jpg" className="img-fluid rounded" alt="Responsive image" />
+                                                    <img src="./src/assets/images/page-img/60.jpg" className="img-fluid rounded" alt="Responsive image" />
                                                 </a>
                                                 <div className="image-hover-data">
                                                     <div className="product-elements-icon">
@@ -1274,7 +1261,7 @@ const Photos = () => {
 const Loading = () => {
     return (
         <div className="col-sm-12 text-center">
-            <img src="/src/assets/images/page-img/page-load-loader.gif" alt="loader" style="height: 100px;" />
+            <img src="./src/assets/images/page-img/page-load-loader.gif" alt="loader" style="height: 100px;" />
         </div>
     );
 }
