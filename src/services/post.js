@@ -3,13 +3,13 @@ import axios from "axios";
 const API_URL = "https://localhost:7174/api/post";
 
 export const createpost = async (userID, Content, Views, Share, PostImages, PostCategoryID) => {
-    return axios.post(`${API_URL}/CreatePost`, { 
-        userID : userID.id, 
-        Content, 
-        Views : 0, 
-        Share : 0, 
+    return axios.post(`${API_URL}/CreatePost`, {
+        userID: userID.id,
+        Content,
+        Views: 0,
+        Share: 0,
         PostImages,
-        PostCategoryID : 1,
+        PostCategoryID: 1,
     }, {
         headers: {
             'Content-Type': 'application/json',
@@ -28,9 +28,17 @@ export const getAllPost = async () => {
 };
 
 export const deletePostById = async (postId) => {
-    return axios.delete(`${API_URL}/${postId}`, {
+    return axios.delete(`${API_URL}/deletePostByID/${postId}`, {
         headers: {
             'Content-Type': 'application/json',
         }
     });
 };
+
+export const getPostByUserID = async (userID) => {
+    return axios.get(`${API_URL}/getPostsByuserID/${userID}`, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+}

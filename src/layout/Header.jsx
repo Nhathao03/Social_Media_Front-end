@@ -1,19 +1,18 @@
 import { useEffect, useState } from "react";
-import { getUserById } from "../services/user";
+import { getUserById, logout, findUser } from "../services/user";
+import { useNavigate } from "react-router-dom";
 
 
 const Header = () => {
   const [user, setUser] = useState(null);
-
+  const [stringData, setStringData] = useState("");
+  const navigate = useNavigate();
   // get Username base on token in local storage
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const storedUserId = localStorage.getItem("token");
-        if (!storedUserId) {
-          console.error("No user ID found in localStorage");
-          return;
-        }
+        if (!storedUserId) return;
         const userData = await getUserById(storedUserId);
         setUser(userData.data);
       } catch (error) {
@@ -23,6 +22,20 @@ const Header = () => {
 
     fetchUser();
   }, []);
+
+  const handleSearchUserBystringData = async (e) => {
+    e.preventDefault();
+    if (!stringData) {
+      alert("Please fill username, phonenumber, email.");
+      return;
+    }
+    try {
+      const response = await findUser(stringData);
+      navigate("/search_user", { state: { searchResult: response.data } });
+    } catch (error) {
+      console.error("Failed to fetch user:", error);
+    }
+  };
 
   return (
     <div class="iq-top-navbar">
@@ -40,9 +53,15 @@ const Header = () => {
             </div>
           </div>
           <div class="iq-search-bar device-search">
-            <form action="#" class="searchbox">
-              <a class="search-link" href="#"><i class="ri-search-line"></i></a>
-              <input type="text" class="text search-input" placeholder="Search here..." />
+            <form  onSubmit={handleSearchUserBystringData} class="searchbox">
+              <button type="submit" className="search-link" style={{border:0, height:0}}><i className="ri-search-line"></i></button>
+              <input
+                type="text"
+                className="text search-input"
+                placeholder="Search here..."
+                value={stringData}
+                onChange={(e) => setStringData(e.target.value)}
+              />
             </form>
           </div>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
@@ -300,7 +319,7 @@ const Header = () => {
                         </div>
                       </div>
                       <div class="card-body p-0 ">
-                        <a href="/profile" class="iq-sub-card iq-bg-primary-hover">
+                        <a href="/my_profile" class="iq-sub-card iq-bg-primary-hover">
                           <div class="d-flex align-items-center">
                             <div class="rounded card-icon bg-soft-primary">
                               <i class="ri-file-user-line"></i>
@@ -346,7 +365,7 @@ const Header = () => {
                           </div>
                         </a>
                         <div class="d-inline-block w-100 text-center p-3">
-                          <a class="btn btn-primary iq-sign-btn" href="../dashboard/sign-in.html" role="button">Sign
+                          <a class="btn btn-primary iq-sign-btn" onClick={logout} role="button">Sign
                             out<i class="ri-login-box-line ms-2"></i></a>
                         </div>
                       </div>

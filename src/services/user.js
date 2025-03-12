@@ -29,6 +29,7 @@ export const register = async (fullName, email, password, birth, phonenumber) =>
 
 export const logout = () => {
     localStorage.removeItem("token");
+    window.location.href = "/login";
 };
 
 export const getCurrentUser = () => {
@@ -41,3 +42,10 @@ export const getUserById = async (userID) => {
     });
 };
 
+export const findUser = async (stringData) => {
+    return axios.get(`${API_URL}/findUser/${stringData}`, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    });
+}
