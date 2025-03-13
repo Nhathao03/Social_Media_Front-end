@@ -92,9 +92,7 @@ const ProfilePage = ({ userData }) => {
         <div className="card">
             <div className="card-body profile-page p-0">
                 {userData ? (
-
                     <div className="profile-header">
-
                         <div className="position-relative">
                             <img src="/src/assets/images/page-img/profile-bg1.jpg" alt="profile-bg" className="rounded img-fluid" />
                             <ul className="header-nav list-inline d-flex flex-wrap justify-end p-0 m-0">

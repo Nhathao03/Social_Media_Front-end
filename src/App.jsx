@@ -2,11 +2,12 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Home from "./pages/Home";
-import MyProfile from "./pages/MyProfile";
+import MyProfile from "./pages/individual/MyProfile";
 import PrivateRoute from "./pages/auth/PrivateRoute";
 import SearchUser from "./pages/SearchUser";
 import Profile from "./pages/Profile";
 import FriendRequest from "./pages/FriendRequest";
+import EditProfile from "./pages/individual/EditProfile";
 import './assets/css/libs.min.css';
 import './assets/css/socialv.css';
 import './assets/vendor/@fortawesome/fontawesome-free/css/all.min.css';
@@ -27,6 +28,7 @@ function Account() {
                 <Route path="/search_user" element={<SearchUser />} />
                 <Route path="/profile/:userID" element={<Profile />} />
                 <Route path="/friendrequest" element={<FriendRequest/>}/>
+                <Route path="/edit_profile" element={<EditProfile/>}/>
             </Routes>
         </Router>
     );

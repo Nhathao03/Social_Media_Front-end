@@ -1,13 +1,13 @@
-import Header from "../layout/Header";
-import LeftSidebar from "../layout/LeftSidebar";
-import RightSidebar from "../layout/RightSidebar";
-import Footer from "../layout/Footer";
+import Header from "../../layout/Header";
+import LeftSidebar from "../../layout/LeftSidebar";
+import RightSidebar from "../../layout/RightSidebar";
+import Footer from "../../layout/Footer";
 import { useEffect, useState } from "react";
-import { getUserById } from "../services/user";
-import { deletePostById, getPostByUserID } from "../services/post";
-import { AddLike } from "../services/likes";
-import { createComment } from "../services/comment";
-import { uploadfile, UploadFileComment } from "../services/uploadfile";
+import { getUserById } from "../../services/user";
+import { deletePostById, getPostByUserID } from "../../services/post";
+import { AddLike } from "../../services/likes";
+import { createComment } from "../../services/comment";
+import { uploadfile, UploadFileComment } from "../../services/uploadfile";
 
 export default function MyProfile() {
     const [user, setUser] = useState(null);
