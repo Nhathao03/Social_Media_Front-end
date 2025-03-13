@@ -12,3 +12,11 @@ export const addFriendRequest = async (senderID, receiverID) => {
         }
     })
 } 
+
+export const getFriendRequestsBySenderID = async(senderID) => {
+    return axios.get(`${API_URL}/getFriendRequestsBySenderID/${senderID}`,{
+        headers:{
+            'Content-Type' :'application/json',
+        }
+    })
+}
