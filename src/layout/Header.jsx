@@ -1,28 +1,44 @@
 import { useEffect, useState } from "react";
-import { getUserById, logout, findUser } from "../services/user";
+import { getUserById, logout, findUser } from "../services/auth";
 import { useNavigate } from "react-router-dom";
-import { getFriendRequestsBySenderID } from "../services/friendRequest";
-
+import { getFriendRequestsBySenderID, rejectFriendRequest, confirmRequest } from "../services/friendRequest";
+import { addFriend } from "../services/friend";
+import { jwtDecode } from "jwt-decode";
 
 export default function Header() {
   const [user, setUser] = useState(null);
   const [stringData, setStringData] = useState("");
+  const [fullname, setFullname] = useState("");
+  const [Image, setImage] = useState(null);
   const navigate = useNavigate();
+
+
   // get Username base on token in local storage
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const storedUserId = localStorage.getItem("token");
-        if (!storedUserId) return;
-        const userData = await getUserById(storedUserId);
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.error("No token found in localStorage");
+          return;
+        }
+        const tokenData = jwtDecode(token);
+        const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
+        const userData = await getUserById(userIdBytoken);
         setUser(userData.data);
       } catch (error) {
         console.error("Failed to fetch user:", error);
       }
     };
-
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      setFullname(user.fullname || "");
+      setImage(user.avatar ? `https://localhost:7174/${user.avatar}` : null);
+    }
+  }, [user]);
 
   //search user by email, phonenumber, username
   const handleSearchUserBystringData = async (e) => {
@@ -32,7 +48,17 @@ export default function Header() {
       return;
     }
     try {
+      const listfriendRequest = await getFriendRequestsBySenderID(user.id);
       const response = await findUser(stringData);
+      for (let i = 0; i < listfriendRequest.data.length; i++) {
+        for (let j = 0; j < response.data.length; j++) {
+          if (listfriendRequest.data[i].receiverID == response.data[j].id) {
+            response.data[j].checkFriend = 1;
+          } else {
+            response.data[j].checkFriend = 2;
+          }
+        }
+      }
       navigate("/search_user", { state: { searchResult: response.data } });
     } catch (error) {
       console.error("Failed to fetch user:", error);
@@ -229,80 +255,76 @@ export default function Header() {
                   </div>
                 </div>
               </li>
-              {user ? (
-                <li className="nav-item dropdown">
-                  <a href="#" className="   d-flex align-items-center dropdown-toggle" id="drop-down-arrow"
-                    data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    <img src="./src/assets/images/user/1.jpg" className="img-fluid rounded-circle me-3" alt="user" />
-                    <div className="caption">
-                      <h6 className="mb-0 line-height">{user.fullname}</h6>
-                    </div>
-                  </a>
-                  <div className="sub-drop dropdown-menu caption-menu" aria-labelledby="drop-down-arrow">
-                    <div className="card shadow-none m-0">
-                      <div className="card-header  bg-primary">
-                        <div className="header-title">
-                          <h5 className="mb-0 text-white">Hello {user.fullname}</h5>
-                          <span className="text-white font-size-12">Available</span>
-                        </div>
+              <li className="nav-item dropdown">
+                <a href="#" className="   d-flex align-items-center dropdown-toggle" id="drop-down-arrow"
+                  data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  <img src={Image} className="img-fluid rounded-circle me-3" alt="user" />
+                  <div className="caption">
+                    <h6 className="mb-0 line-height">{fullname}</h6>
+                  </div>
+                </a>
+                <div className="sub-drop dropdown-menu caption-menu" aria-labelledby="drop-down-arrow">
+                  <div className="card shadow-none m-0">
+                    <div className="card-header  bg-primary">
+                      <div className="header-title">
+                        <h5 className="mb-0 text-white">Hello {fullname}</h5>
+                        <span className="text-white font-size-12">Available</span>
                       </div>
-                      <div className="card-body p-0 ">
-                        <a href="/my_profile" className="iq-sub-card iq-bg-primary-hover">
-                          <div className="d-flex align-items-center">
-                            <div className="rounded card-icon bg-soft-primary">
-                              <i className="ri-file-user-line"></i>
-                            </div>
-                            <div className="ms-3">
-                              <h6 className="mb-0 ">My Profile</h6>
-                              <p className="mb-0 font-size-12">View personal profile details.</p>
-                            </div>
+                    </div>
+                    <div className="card-body p-0 ">
+                      <a href="/my_profile" className="iq-sub-card iq-bg-primary-hover">
+                        <div className="d-flex align-items-center">
+                          <div className="rounded card-icon bg-soft-primary">
+                            <i className="ri-file-user-line"></i>
                           </div>
-                        </a>
-                        <a href="/edit_profile" className="iq-sub-card iq-bg-warning-hover">
-                          <div className="d-flex align-items-center">
-                            <div className="rounded card-icon bg-soft-warning">
-                              <i className="ri-profile-line"></i>
-                            </div>
-                            <div className="ms-3">
-                              <h6 className="mb-0 ">Edit Profile</h6>
-                              <p className="mb-0 font-size-12">Modify your personal details.</p>
-                            </div>
+                          <div className="ms-3">
+                            <h6 className="mb-0 ">My Profile</h6>
+                            <p className="mb-0 font-size-12">View personal profile details.</p>
                           </div>
-                        </a>
-                        <a href="../app/account-setting.html" className="iq-sub-card iq-bg-info-hover">
-                          <div className="d-flex align-items-center">
-                            <div className="rounded card-icon bg-soft-info">
-                              <i className="ri-account-box-line"></i>
-                            </div>
-                            <div className="ms-3">
-                              <h6 className="mb-0 ">Account settings</h6>
-                              <p className="mb-0 font-size-12">Manage your account parameters.</p>
-                            </div>
-                          </div>
-                        </a>
-                        <a href="../app/privacy-setting.html" className="iq-sub-card iq-bg-danger-hover">
-                          <div className="d-flex align-items-center">
-                            <div className="rounded card-icon bg-soft-danger">
-                              <i className="ri-lock-line"></i>
-                            </div>
-                            <div className="ms-3">
-                              <h6 className="mb-0 ">Privacy Settings</h6>
-                              <p className="mb-0 font-size-12">Control your privacy parameters.
-                              </p>
-                            </div>
-                          </div>
-                        </a>
-                        <div className="d-inline-block w-100 text-center p-3">
-                          <a className="btn btn-primary iq-sign-btn" onClick={logout} role="button">Sign
-                            out<i className="ri-login-box-line ms-2"></i></a>
                         </div>
+                      </a>
+                      <a href="/edit_profile" className="iq-sub-card iq-bg-warning-hover">
+                        <div className="d-flex align-items-center">
+                          <div className="rounded card-icon bg-soft-warning">
+                            <i className="ri-profile-line"></i>
+                          </div>
+                          <div className="ms-3">
+                            <h6 className="mb-0 ">Edit Profile</h6>
+                            <p className="mb-0 font-size-12">Modify your personal details.</p>
+                          </div>
+                        </div>
+                      </a>
+                      <a href="../app/account-setting.html" className="iq-sub-card iq-bg-info-hover">
+                        <div className="d-flex align-items-center">
+                          <div className="rounded card-icon bg-soft-info">
+                            <i className="ri-account-box-line"></i>
+                          </div>
+                          <div className="ms-3">
+                            <h6 className="mb-0 ">Account settings</h6>
+                            <p className="mb-0 font-size-12">Manage your account parameters.</p>
+                          </div>
+                        </div>
+                      </a>
+                      <a href="../app/privacy-setting.html" className="iq-sub-card iq-bg-danger-hover">
+                        <div className="d-flex align-items-center">
+                          <div className="rounded card-icon bg-soft-danger">
+                            <i className="ri-lock-line"></i>
+                          </div>
+                          <div className="ms-3">
+                            <h6 className="mb-0 ">Privacy Settings</h6>
+                            <p className="mb-0 font-size-12">Control your privacy parameters.
+                            </p>
+                          </div>
+                        </div>
+                      </a>
+                      <div className="d-inline-block w-100 text-center p-3">
+                        <a className="btn btn-primary iq-sign-btn" onClick={logout} role="button">Sign
+                          out<i className="ri-login-box-line ms-2"></i></a>
                       </div>
                     </div>
                   </div>
-                </li>
-              ) : (
-                <a href="/login" className="btn btn-primary">Login</a>
-              )}
+                </div>
+              </li>
             </ul>
           </div>
         </nav>
@@ -311,15 +333,14 @@ export default function Header() {
   );
 };
 
-const FriendRequest = ({user}) => {
+const FriendRequest = ({ user }) => {
   const [listData, setListData] = useState([]);
+  const [message, setMessage] = useState("");
   useEffect(() => {
     const fetchListRequest = async () => {
       if (!user?.id) return; // Prevent API call if user ID is undefined
-  
       try {
         const response = await getFriendRequestsBySenderID(user.id);
-        
         const fetchUser = await Promise.all(
           response.data.map(async (data) => {
             try {
@@ -332,15 +353,38 @@ const FriendRequest = ({user}) => {
             }
           })
         );
-  
         setListData(fetchUser);
       } catch (err) {
         console.error("Failed to fetch friend requests:", err);
       }
     };
-  
     fetchListRequest();
   }, [user?.id]);
+
+
+  const handleConfirm = async (id) => {
+    try {
+      const response = await addFriend(id);
+      await confirmRequest(id);
+      console.log('Friend added successfully:', response);
+      setMessage("Confirm friend request successfully");
+    } catch (error) {
+      console.error("Failed to confirm friend request:", error.response || error);
+      setMessage(error.response?.data?.message || "Failed to add friend. Please try again.");
+    }
+  }
+
+  const handleReject = async (id) => {
+    try {
+      const response = await rejectFriendRequest(id);
+      console.log('Reject friend request successfully:', response);
+      setMessage("Reject friend request successfully");
+    } catch (error) {
+      console.error("Failed to delete friend request:", error);
+      setMessage(error.response?.data?.message || "Failed to reject friend request. Please try again.");
+    }
+  }
+
   return (
     <div className="sub-drop sub-drop-large dropdown-menu" aria-labelledby="group-drop">
       <div className="card shadow-none m-0">
@@ -362,8 +406,8 @@ const FriendRequest = ({user}) => {
                   </div>
                 </div>
                 <div className="d-flex align-items-center">
-                  <a href="javascript:void();" className="me-3 btn btn-primary rounded">Confirm</a>
-                  <a href="javascript:void();" className="me-3 btn btn-secondary rounded">Delete Request</a>
+                  <button onClick={() => handleConfirm(data.id)} className="me-3 btn btn-primary rounded">Confirm</button>
+                  <button onClick={() => handleReject(data.id)} className="me-3 btn btn-secondary rounded">Delete Request</button>
                 </div>
               </div>
             </div>

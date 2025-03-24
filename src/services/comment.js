@@ -2,13 +2,13 @@ import axios from "axios";
 
 const API_URL = "https://localhost:7174/api/comment";
 
-export const createComment = async (userID, postID, Content, ImageUrl, sticker) => {
+export const createComment = async (userID, postID, Content, ImageUrl = null, sticker) => {
     return axios.post(`${API_URL}/CreateNewComment`, {
-        userID : userID.id,
+        userID: userID.id,
         postID,
         Content,
-        ImageUrl : ImageUrl[0] == null ? "" : ImageUrl[0].Url,
-        sticker : 0,
+        ImageUrl,
+        sticker: 0,
     }, {
         headers: {
             'Content-Type': 'application/json',

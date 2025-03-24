@@ -4,11 +4,12 @@ import RightSidebar from "../layout/RightSidebar";
 import Footer from "../layout/Footer";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getUserById } from "../services/user";
+import { getUserById } from "../services/auth";
 import { deletePostById, getPostByUserID } from "../services/post";
 import { AddLike } from "../services/likes";
 import { createComment } from "../services/comment";
 import { uploadfile, UploadFileComment } from "../services/uploadfile";
+import { jwtDecode } from "jwt-decode";
 
 export default function Profile() {
     const [accountID, setMyAccountID] = useState(null);
@@ -18,19 +19,22 @@ export default function Profile() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const storedUserId = localStorage.getItem("token");
-                if (!storedUserId) {
-                    console.error("No user ID found in localStorage");
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    console.error("No token found in localStorage");
                     return;
                 }
-                const response = await getUserById(storedUserId);
-                setMyAccountID(response.data);
+                const tokenData = jwtDecode(token);
+                const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
+                const userData = await getUserById(userIdBytoken);
+                setMyAccountID(userData.data);
             } catch (error) {
                 console.error("Failed to fetch user:", error);
             }
         };
         fetchUser();
     }, []);
+
 
     //get information user to display in profile 
     useEffect(() => {

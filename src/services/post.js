@@ -42,3 +42,12 @@ export const getPostByUserID = async (userID) => {
         }
     })
 }
+
+export const GetAllPostNearestCreatedAt = async () => {
+    return axios.get(`${API_URL}/GetAllPostNearestCreatedAt`, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+}
+
