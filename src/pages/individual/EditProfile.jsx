@@ -3,28 +3,31 @@ import LeftSidebar from "../../layout/LeftSidebar";
 import RightSidebar from "../../layout/RightSidebar";
 import Footer from "../../layout/Footer";
 import { useEffect, useState } from "react";
-import { getUserById } from "../../services/user";
+import { getUserById, UpdatePersonalInformation } from "../../services/auth";
 import { getAllAddress } from "../../services/address";
 import { UploadAvatarUser } from "../../services/uploadfile";
+import { jwtDecode } from "jwt-decode";
 
 export default function EditProfile() {
     const [userData, setuserData] = useState(null);
     useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const storeUserID = localStorage.getItem("token");
-                if (!storeUserID) {
-                    console.error("No user ID found in localStorage");
-                    return;
+            const fetchUser = async () => {
+                try {
+                    const token = localStorage.getItem("token");
+                    if (!token) {
+                        console.error("No token found in localStorage");
+                        return;
+                    }
+                    const tokenData = jwtDecode(token);
+                    const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
+                    const userData = await getUserById(userIdBytoken);
+                    setuserData(userData.data);
+                } catch (error) {
+                    console.error("Failed to fetch user:", error);
                 }
-                const response = await getUserById(storeUserID);
-                setuserData(response.data);
-            } catch (err) {
-                console.error("Failed to fetch user");
-            }
-        }
-        fetchUser();
-    }, []);
+            };
+            fetchUser();
+        }, []);
 
     return (
         <div className="wrapper">
@@ -38,7 +41,7 @@ export default function EditProfile() {
                             <Menu />
                         </div>
                         <div class="col-lg-12">
-                            <div class="iq-edit-list-data">
+                            <div className="iq-edit-list-data">
                                 <div className="tab-content">
                                     <ContentTab userData={userData} />
                                 </div>
@@ -98,10 +101,23 @@ const ContentTab = ({ userData }) => {
 const PersonalInformationTab = ({ userData }) => {
     const [addressData, setAddressData] = useState([]);
     const [birth, setBirth] = useState();
-    const [username, setUsername] = useState();
     const [gender, setGender] = useState();
-    const [avatar, setAvatar] = useState([null]);
+    const [avatar, setAvatar] = useState(null);
+    const [previewImage, setPreviewImage] = useState(null);
+    const [message, setMessage] = useState("");
+    const [addressID, setSelectedAddress] = useState("");
+    const [fullname, setFullname] = useState("");
+    const [userID, setUserID] = useState("");
 
+    useEffect(() => {
+        if (userData) {
+            setFullname(userData.fullname || "");
+            setUserID(userData.id || "");
+            setBirth(userData.birth ? formatDate(userData.birth) : "");
+            setGender(userData.gender || "");
+            setPreviewImage(userData.avatar ? `https://localhost:7174/${userData.avatar}` : null);
+        }
+    }, [userData]);
 
     useEffect(() => {
         const fetchAddress = async () => {
@@ -122,27 +138,45 @@ const PersonalInformationTab = ({ userData }) => {
 
     //Check image if have change
     const handleChangeImage = async (e) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const files = Array.from(e.target.files);
-            const uploadedUrls = await Promise.all(files.map(async (file) => {
-                return await UploadAvatarUser(file);
-            }));
-            const ListUrl = uploadedUrls.map((url) => {
-                return {
-                    Url: url.data
+        const file = e.target.files[0];
+        if (file) {
+            // Create preview URL
+            const previewUrl = URL.createObjectURL(file);
+            setPreviewImage(previewUrl);
+            
+            try {
+                const response = await UploadAvatarUser(file);
+                if (response.data) {
+                    setAvatar(response.data);
                 }
-            });
-            setAvatar(ListUrl);
+            } catch (error) {
+                console.error("Failed to upload image:", error);
+                setMessage("Failed to upload image. Please try again.");
+            }
         }
     };
 
-    const handleSubmit = async () => {
+    const handleGenderChange = (e) => {
+        setGender(e.target.value);
+    };
 
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!userID) {
+            setMessage("No userID found.");
+            return;
+        }
+        try {
+            await UpdatePersonalInformation(userID, fullname, addressID, birth, gender, avatar);
+            setMessage("Updated success.");
+        } catch (err) {
+            console.error("Failed to updated personal information.");
+            setMessage("Failed to update personal information.");
+        }
     }
 
     return (
         <div className="tab-pane fade active show" id="personal-information" role="tabpanel">
-
             <div className="card">
                 <div className="card-header d-flex justify-content-between">
                     <div className="header-title">
@@ -150,23 +184,31 @@ const PersonalInformationTab = ({ userData }) => {
                     </div>
                 </div>
                 <div className="card-body">
-                    <form onSubmit={handleSubmit}>
-                        <div className="form-group row align-items-center">
-                            <div className="col-md-12">
-                                <div className="profile-img-edit">
-                                    <img
-                                        className="profile-pic"
-                                        src="https://localhost:7174/user/avatar/avatar.png"
-                                        alt="profile-pic"
-                                    />
-                                    <div className="p-image">
-                                        <i className="ri-pencil-line upload-button text-white"></i>
-                                        <input className="file-upload" type="file" onChange={handleChangeImage} />
+                    {userData ? (
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group row align-items-center">
+                                <div className="col-md-12">
+                                    <div className="profile-img-edit position-relative">
+                                        <img
+                                            className="profile-pic"
+                                            src={previewImage}
+                                            alt="profile-pic"
+                                            style={{ height: "100%" }}
+                                        />
+                                        <label className="p-image position-absolute" style={{ cursor: 'pointer' }}>
+                                            <i className="ri-pencil-line upload-button text-white"></i>
+                                            <input 
+                                                className="file-upload" 
+                                                type="file" 
+                                                accept="image/*"
+                                                onChange={handleChangeImage}
+                                                style={{ display: 'none' }}
+                                            />
+                                        </label>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        {userData ? (
+
                             <div className="row align-items-center" key={userData.id}>
                                 <div className="form-group col-sm-6">
                                     <label htmlFor="uname" className="form-label">
@@ -176,7 +218,9 @@ const PersonalInformationTab = ({ userData }) => {
                                         type="text"
                                         className="form-control"
                                         id="uname"
-                                        placeholder={userData.fullname}
+                                        placeholder={fullname}
+                                        value={fullname}
+                                        onChange={(e) => setFullname(e.target.value)}
                                     />
                                 </div>
                                 <div className="form-group col-sm-6">
@@ -185,9 +229,10 @@ const PersonalInformationTab = ({ userData }) => {
                                         className="form-select"
                                         aria-label="Default select example 3"
                                         defaultValue="ho-chi-minh"
+                                        onChange={(e) => setSelectedAddress(e.target.value)}
                                     >
                                         {addressData.map((address) =>
-                                            <option key={address.id} value={address.slug}>{address.name}</option>
+                                            <option value={address.id} key={address.id} >{address.name}</option>
                                         )}
                                     </select>
                                 </div>
@@ -199,7 +244,9 @@ const PersonalInformationTab = ({ userData }) => {
                                             type="radio"
                                             name="inlineRadioOptions"
                                             id="inlineRadio10"
-                                            value="option1"
+                                            value="male"
+                                            checked={gender === "male"}
+                                            onChange={handleGenderChange}
                                         />
                                         <label className="form-check-label" htmlFor="inlineRadio10">
                                             Male
@@ -211,7 +258,9 @@ const PersonalInformationTab = ({ userData }) => {
                                             type="radio"
                                             name="inlineRadioOptions"
                                             id="inlineRadio11"
-                                            value="option1"
+                                            value="female"
+                                            checked={gender === "female"}
+                                            onChange={handleGenderChange}
                                         />
                                         <label className="form-check-label" htmlFor="inlineRadio11">
                                             Female
@@ -226,7 +275,7 @@ const PersonalInformationTab = ({ userData }) => {
                                         type="date"
                                         className="form-control"
                                         id="dob"
-                                        value={userData.birth ? formatDate(userData.birth) : ""}
+                                        value={birth}
                                         onChange={(e) => setBirth(e.target.value)}
                                     />
                                 </div>
@@ -258,24 +307,16 @@ const PersonalInformationTab = ({ userData }) => {
                                         <option value="Africa">Africa</option>
                                     </select>
                                 </div>
-                                <div className="form-group col-sm-12">
-                                    <label className="form-label">Address:</label>
-                                    <input
-                                        className="form-control"
-                                        name="address"
-                                        rows="5"
-                                        style={{ lineHeight: '22px' }}
-                                    />
-                                </div>
                             </div>
-                        ) : null}
-                        <button type="submit" className="btn btn-primary me-2">
-                            Submit
-                        </button>
-                        <button type="reset" className="btn bg-soft-danger">
-                            Cancel
-                        </button>
-                    </form>
+
+                            <button type="submit" className="btn btn-primary me-2">
+                                Submit
+                            </button>
+                            <button type="reset" className="btn bg-soft-danger">
+                                Cancel
+                            </button>
+                        </form>
+                    ) : null}
                 </div>
             </div>
 

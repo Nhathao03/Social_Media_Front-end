@@ -43,7 +43,8 @@ const ListRequest = () => {
                         </div>
                         <div className="d-flex align-items-center mt-2 mt-md-0">
                             <div className="confirm-click-btn">
-                                <a href="#" className="me-3 btn btn-primary rounded confirm-btn">Confirm</a>
+                                <button onClick={handleConfirm} className="me-3 btn btn-primary rounded confirm-btn">Confirm</button>
+                                
                             </div>
                             <a href="#" className="btn btn-secondary rounded" data-extra-toggle="delete" data-closest-elem=".item">Delete Request</a>
                         </div>

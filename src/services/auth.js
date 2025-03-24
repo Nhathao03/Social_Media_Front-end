@@ -1,12 +1,12 @@
 import axios from "axios";
 
-const API_URL = "https://localhost:7174/api/user";
+const API_URL = "https://localhost:7174/api/auth";
 
 export const login = async (email, password) => {
-    return axios.post(`${API_URL}/login`, { 
-        email, 
-        password 
-    },{
+    return axios.post(`${API_URL}/login`, {
+        email,
+        password
+    }, {
         headers: {
             'Content-Type': 'application/json',
         }
@@ -48,4 +48,20 @@ export const findUser = async (stringData) => {
             'Content-Type': 'application/json',
         }
     });
+}
+
+export const UpdatePersonalInformation = async (userID, fullname, addressID, birth, gender, avatar) => {
+    return axios.put(`${API_URL}/UpdatePersonalInformation`, {
+        userID,
+        fullname,
+        addressID,
+        birth,
+        gender,
+        avatar
+    }, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    }
+    );
 }

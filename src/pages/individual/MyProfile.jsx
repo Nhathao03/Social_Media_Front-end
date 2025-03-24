@@ -3,11 +3,13 @@ import LeftSidebar from "../../layout/LeftSidebar";
 import RightSidebar from "../../layout/RightSidebar";
 import Footer from "../../layout/Footer";
 import { useEffect, useState } from "react";
-import { getUserById } from "../../services/user";
-import { deletePostById, getPostByUserID } from "../../services/post";
+import { getUserById } from "../../services/auth";
+import { deletePostById, getPostByUserID ,GetAllPostNearestCreatedAt} from "../../services/post";
 import { AddLike } from "../../services/likes";
 import { createComment } from "../../services/comment";
 import { uploadfile, UploadFileComment } from "../../services/uploadfile";
+import { getAllFriend , getAllFriendByUserID} from "../../services/friend";
+import { jwtDecode } from "jwt-decode";
 
 export default function MyProfile() {
     const [user, setUser] = useState(null);
@@ -15,12 +17,14 @@ export default function MyProfile() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const storedUserId = localStorage.getItem("token");
-                if (!storedUserId) {
-                    console.error("No user ID found in localStorage");
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    console.error("No token found in localStorage");
                     return;
                 }
-                const userData = await getUserById(storedUserId);
+                const tokenData = jwtDecode(token);
+                const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
+                const userData = await getUserById(userIdBytoken);
                 setUser(userData.data);
             } catch (error) {
                 console.error("Failed to fetch user:", error);
@@ -45,7 +49,7 @@ export default function MyProfile() {
                             <div className="tab-content">
                                 <TimeLine user={user} />
                                 <About />
-                                <Friends />
+                                <Friends user={user} />
                                 <Photos />
                             </div>
                         </div>
@@ -58,6 +62,27 @@ export default function MyProfile() {
 }
 const ProfilePage = ({ user }) => {
     const [countPosts, setCountPosts] = useState(0);
+    const [fullname, setFullname] = useState("");
+    const [userID, setUserID] = useState("");
+    const [birth, setBirth] = useState("");
+    const [gender, setGender] = useState("");
+    const [previewImage, setPreviewImage] = useState(null);
+
+    useEffect(() => {
+        if (user) {
+            setFullname(user.fullname || "");
+            setUserID(user.id || "");
+            setBirth(user.birth ? formatDate(user.birth) : "");
+            setGender(user.gender || "");
+            setPreviewImage(user.avatar ? `https://localhost:7174/${user.avatar}` : null);
+        }
+    }, [user]);
+
+    //format date
+    const formatDate = (dateString) => {
+        return new Date(dateString).toISOString().split("T")[0];
+    };
+
 
     useEffect(() => {
         const fetchPost = async () => {
@@ -88,7 +113,7 @@ const ProfilePage = ({ user }) => {
                         </div>
                         <div className="user-detail text-center mb-3">
                             <div className="profile-img">
-                                <img src="./src/assets/images/user/11.png" alt="profile-img" className="avatar-130 img-fluid" />
+                                <img src={previewImage} alt="profile-img" className="avatar-130 img-fluid" style={{ height: "130px" }} />
                             </div>
                             <div className="profile-detail">
                                 <h3 className="">{user.fullname}</h3>
@@ -286,6 +311,8 @@ const CreatePost = () => {
     const [userID, setUserID] = useState(null);
     const [PostImages, setPostImage] = useState([null]);
     const [message, setMessage] = useState("");
+    const [fullname, setFullname] = useState("");
+    const [Image, setImage] = useState(null);
     const Views = useState();
     const Share = useState();
     const PostCategoryID = useState();
@@ -357,7 +384,7 @@ const CreatePost = () => {
                     <div className="d-flex align-items-center">
                         <div className="user-img">
                             <img
-                                src="./src/assets/images/user/1.jpg"
+                                src={`https://localhost:7174/${Image}`}
                                 alt="User"
                                 className="avatar-60 rounded-circle"
                             />
@@ -424,6 +451,9 @@ const TimeLineRightContent = ({ user }) => {
     const sticker = useState("");
     const [ImageCmt, setImageComment] = useState([null]);
     const [message, setMessage] = useState("");
+    const [fullname, setFullname] = useState("");
+    const [Avatar, setAvatar] = useState(null);
+    const [userID, setUserID] = useState(null);
 
     useEffect(() => {
         const fetchPosts = async () => {
@@ -455,6 +485,15 @@ const TimeLineRightContent = ({ user }) => {
             }
         };
         fetchPosts();
+    }, [user]);
+
+
+    useEffect(() => {
+        if (user) {
+            setFullname(user.fullname || "");
+            setAvatar(user.avatar ? `https://localhost:7174/${user.avatar}` : null);
+            setUserID(user.id);
+        }
     }, [user]);
 
     //delete post
@@ -524,14 +563,12 @@ const TimeLineRightContent = ({ user }) => {
                             <div className="user-post-data pb-3">
                                 <div className="d-flex justify-content-between">
                                     <div className="me-3">
-                                        <img className="rounded-circle  avatar-60" src="./src/assets/images/user/1.jpg" alt="" />
+                                        <img className="rounded-circle  avatar-60"  src={Avatar}  alt="" />
                                     </div>
                                     <div className="w-100">
                                         <div className="d-flex justify-content-between flex-wrap">
                                             <div className="">
-                                                {user ? (
-                                                    <h5 className="mb-0 d-inline-block"><a href={`/profile/${user.id}`}>{user.fullname}</a></h5>
-                                                ) : null}
+                                                <h5 className="mb-0 d-inline-block"><a href={`/profile/${userID}`}>{fullname}</a></h5>
                                                 <p className="ms-1 mb-0 d-inline-block">Add New Post</p>
                                                 {/* <p className="mb-0">{formatDate(post.createAt)}</p> */}
                                             </div>
@@ -698,7 +735,7 @@ const TimeLineRightContent = ({ user }) => {
                                         onChange={(e) => setContent(e.target.value)}
                                     />
                                     <div className="comment-attagement d-flex">
-                                        <button style={{border:"none"}} type="submit" aria-label="Send">
+                                        <button style={{ border: "none" }} type="submit" aria-label="Send">
                                             <i class="fa fa-paper-plane" aria-hidden="true"></i>
                                         </button>
                                         <a href="javascript:void();"><i className="ri-user-smile-line me-3"></i></a>
@@ -714,14 +751,15 @@ const TimeLineRightContent = ({ user }) => {
     );
 }
 
-const About = () => {
+const About = ({user}) => {
+
     return (
         <div className="tab-pane fade" id="about" role="tabpanel" >
             <div className="card">
                 <div className="card-body">
                     <div className="row">
                         <AboutLeftContent />
-                        <AboutRightContent />
+                        <AboutRightContent user={user} />
                     </div>
                 </div>
             </div>
@@ -753,7 +791,29 @@ const AboutLeftContent = () => {
     );
 }
 
-const AboutRightContent = () => {
+const AboutRightContent = ({user}) => {
+    const [fullname, setFullname] = useState("");
+    const [userID, setUserID] = useState("");
+    const [birth, setBirth] = useState("");
+    const [gender, setGender] = useState("");
+    const [previewImage, setPreviewImage] = useState(null);
+
+    console.log(user);
+    useEffect(() => {
+        if (user) {
+            setFullname(user.fullname || "");
+            setUserID(user.id || "");
+            setBirth(user.birth ? formatDate(user.birth) : "");
+            setGender(user.gender || "");
+            setPreviewImage(user.avatar ? `https://localhost:7174/${user.avatar}` : null);
+        }
+    }, [user]);
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    };
+
     return (
         <div className="col-md-9 ps-4">
             <div className="tab-content" >
@@ -1015,7 +1075,31 @@ const AboutRightContent = () => {
     );
 }
 
-const Friends = () => {
+const Friends = ({user}) => {
+    const [friends, setFriends] = useState([]);
+    const [userID, setUserID] = useState(user?.id);
+
+    console.log(user);
+
+    console.log(userID);
+    useEffect(() => {
+        const fetchFriends = async () => {
+            try{
+                const response = await getAllFriendByUserID(userID);
+                const friendsWithInfo = await Promise.all(
+                    response.data.map(async (friend) => {
+                        const userInfo = await getUserById(friend.friendId);
+                        return { ...friend, ...userInfo.data };
+                    })
+                );
+                response.data = friendsWithInfo;
+                setFriends(response.data);
+            }catch(error){
+                console.error("Failed to fetch friends:", error);
+            }
+        }
+        fetchFriends();
+    }, []);
     return (
         <div className="tab-pane fade" id="friends" role="tabpanel">
             <div className="card">
@@ -1043,6 +1127,8 @@ const Friends = () => {
                             <div className="tab-pane fade active show" id="all-friends" role="tabpanel">
                                 <div className="card-body p-0">
                                     <div className="row">
+                                        {friends ? (
+                                        friends.map((friend) => (
                                         <div className="col-md-6 col-lg-6 mb-3">
                                             <div className="iq-friendlist-block">
                                                 <div className="d-flex align-items-center justify-content-between">
@@ -1051,7 +1137,7 @@ const Friends = () => {
                                                             <img src="./src/assets/images/user/05.jpg" alt="profile-img" className="img-fluid" />
                                                         </a>
                                                         <div className="friend-info ms-3">
-                                                            <h5>Petey Cruiser</h5>
+                                                            <h5>{friend.fullname}</h5>
                                                             <p className="mb-0">15  friends</p>
                                                         </div>
                                                     </div>
@@ -1072,6 +1158,7 @@ const Friends = () => {
                                                 </div>
                                             </div>
                                         </div>
+                                        ))) : <p>No friends</p>}
                                     </div>
                                 </div>
                             </div>

@@ -2,14 +2,14 @@ import Header from "../layout/Header";
 import LeftSidebar from "../layout/LeftSidebar";
 import RightSidebar from "../layout/RightSidebar";
 import Footer from "../layout/Footer";
-import { createpost, getAllPost, deletePostById } from "../services/post";
-import { getUserById } from "../services/user";
+import { createpost, GetAllPostNearestCreatedAt, deletePostById } from "../services/post";
+import { getUserById } from "../services/auth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { uploadfile, UploadFileComment } from "../services/uploadfile";
 import { createComment, getCommentByID } from "../services/comment";
 import { AddLike } from "../services/likes";
-
+import { jwtDecode } from "jwt-decode";
 
 export default function Home() {
     return (
@@ -23,7 +23,6 @@ export default function Home() {
                         <div className="col-lg-8 row m-0 p-0">
                             <CreatePost />
                             <GetAllPost />
-                            <Post2 />
                         </div>
                         <div className="col-lg-4">
                             <Stories />
@@ -46,26 +45,38 @@ const CreatePost = () => {
     const Views = useState();
     const Share = useState();
     const PostCategoryID = useState();
+    const [fullname, setFullname] = useState("");
+    const [Image, setImage] = useState(null);
     const navigate = useNavigate();
 
     //get token user from local storage
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const storedUserId = localStorage.getItem("token");
-                if (!storedUserId) {
-                    console.error("No user ID found in localStorage");
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    console.error("No token found in localStorage");
                     return;
                 }
-                const userData = await getUserById(storedUserId);
+                const tokenData = jwtDecode(token);
+                const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
+                const userData = await getUserById(userIdBytoken);
                 setUserID(userData.data);
             } catch (error) {
                 console.error("Failed to fetch user:", error);
             }
         };
-
         fetchUser();
     }, []);
+
+
+    useEffect(() => {
+        if (userID) {
+            setFullname(userID.fullname || "");
+            setImage(userID.avatar ? `https://localhost:7174/${userID.avatar}` : null);
+        }
+    }, [userID]);
+
 
     //Check image if have change
     const handleChangeImage = async (e) => {
@@ -112,7 +123,7 @@ const CreatePost = () => {
                         <div className="d-flex align-items-center">
                             <div className="user-img">
                                 <img
-                                    src="./src/assets/images/user/1.jpg"
+                                    src={Image}
                                     alt="User"
                                     className="avatar-60 rounded-circle"
                                 />
@@ -187,7 +198,7 @@ const GetAllPost = () => {
     useEffect(() => {
         const fetchPost = async () => {
             try {
-                const postData = await getAllPost();
+                const postData = await GetAllPostNearestCreatedAt();
                 const postsWithUsernames = await Promise.all(
                     postData.data.map(async (post) => {
                         // Fetch username for the post author
@@ -196,7 +207,7 @@ const GetAllPost = () => {
                         const updatedComments = await Promise.all(
                             post.comments.map(async (comment) => {
                                 const fetchUsernamecomment = await getUserById(comment.userId);
-                                return { ...comment, username_comment: fetchUsernamecomment.data.fullname };
+                                return { ...comment, username_comment: fetchUsernamecomment.data.fullname, avatar_comment: fetchUsernamecomment.data.avatar };
                             })
                         );
                         // Fetch usernames for each like author
@@ -206,7 +217,7 @@ const GetAllPost = () => {
                                 return { ...like, username_like: fetchUsernamelike.data.fullname };
                             })
                         );
-                        return { ...post, username: fetchUsername.data.fullname, comments: updatedComments, likes: updatedLikes };
+                        return { ...post, username: fetchUsername.data.fullname, userAvatar: fetchUsername.data.avatar, comments: updatedComments, likes: updatedLikes };
                     })
                 );
                 setPosts(postsWithUsernames);
@@ -220,18 +231,19 @@ const GetAllPost = () => {
         // get username based on token in local storage
         const fetchUser = async () => {
             try {
-                const storedUserId = localStorage.getItem("token");
-                if (!storedUserId) {
-                    console.error("No user ID found in localStorage");
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    console.error("No token found in localStorage");
                     return;
                 }
-                const userData = await getUserById(storedUserId);
-                setUser(userData.data);
+                const tokenData = jwtDecode(token);
+                const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
+                const userData = await getUserById(userIdBytoken);
+                setUserID(userData.data);
             } catch (error) {
                 console.error("Failed to fetch user:", error);
             }
         };
-
         fetchUser();
 
     }, []);
@@ -281,6 +293,7 @@ const GetAllPost = () => {
             setImageComment(ListUrl);
         }
     };
+
     //handle submit comment
     const handleSubmitComment = async (e, postID) => {
         e.preventDefault();
@@ -291,6 +304,7 @@ const GetAllPost = () => {
         try {
             await createComment(userID, postID, content, ImageUrl, sticker);
             setMessage("Comment created successfully!");
+            window.location.reload();
         } catch (error) {
             setMessage(error.response?.data || "Failed to create comment.");
         }
@@ -303,6 +317,7 @@ const GetAllPost = () => {
         }
         try {
             await AddLike(userID, postID);
+            window.location.reload();
         } catch (error) {
             setMessage(error.response?.data || "Failed to add like.");
         }
@@ -319,7 +334,7 @@ const GetAllPost = () => {
                             <div className="user-post-data">
                                 <div className="d-flex justify-content-between">
                                     <div className="me-3">
-                                        <img className="rounded-circle img-fluid" src="./src/assets/images/user/01.jpg" alt="" />
+                                        <img className="rounded-circle img-fluid" src={`https://localhost:7174/${post.userAvatar}`} alt="" style={{ width: "57px", height: "50px" }} />
                                     </div>
                                     <div className="w-100">
                                         <div className="d-flex justify-content-between">
@@ -391,18 +406,20 @@ const GetAllPost = () => {
                             <div className="mt-3">
                                 <p>{post.content}</p>
                             </div>
-                            <div className="user-post">
-                                <div className="d-grid grid-rows-2 grid-flow-col gap-3">
-                                    {post.postImages.map((image, index) => (
-                                        <div key={index} className="row-span-2 row-span-md-1">
-                                            <img src={`https://localhost:7174/${image.url}`} alt={`post-image-${index}`} className="img-fluid rounded w-100" />
-                                        </div>
-                                        // <div className="row-span-1">
-                                        //     <img src="" alt="post-image" className="img-fluid rounded w-100" />
-                                        // </div>
-                                    ))}
+                            {!post ? (
+                                <div className="user-post">
+                                    <div className="d-grid grid-rows-2 grid-flow-col gap-3">
+                                        {post.postImages.map((image, index) => (
+                                            <div key={index} className="row-span-2 row-span-md-1">
+                                                <img src={`https://localhost:7174/${image.url}`} alt={`post-image-${index}`} className="img-fluid rounded w-100" />
+                                            </div>
+                                            // <div className="row-span-1">
+                                            //     <img src="" alt="post-image" className="img-fluid rounded w-100" />
+                                            // </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            ) : null}
                             <div className="comment-area mt-3">
                                 <div className="d-flex justify-content-between align-items-center flex-wrap">
                                     <div className="like-block position-relative d-flex align-items-center">
@@ -468,7 +485,7 @@ const GetAllPost = () => {
                                         <li className="mb-2">
                                             <div className="d-flex">
                                                 <div className="user-img">
-                                                    <img src="./src/assets/images/user/02.jpg" alt="userimg" className="avatar-35 rounded-circle img-fluid" />
+                                                    <img src={`https://localhost:7174/${comment.avatar_comment}`} alt="userimg" className="avatar-35 rounded-circle img-fluid" />
                                                 </div>
                                                 <div className="comment-data-block ms-3">
                                                     <h6>{comment.username_comment}</h6>
@@ -496,7 +513,6 @@ const GetAllPost = () => {
                                         <button style={{ border: "none" }} type="submit" aria-label="Send">
                                             <i class="fa fa-paper-plane" aria-hidden="true"></i>
                                         </button>
-                                        <a href="javascript:void();"><i className="ri-user-smile-line me-3"></i></a>
                                         <label><input type="file" onChange={handleChangeImage} hidden multiple /><i className="ri-camera-line me-3"></i></label>
                                     </div>
                                 </form>

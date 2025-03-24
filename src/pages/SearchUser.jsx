@@ -5,7 +5,8 @@ import Footer from "../layout/Footer";
 import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { addFriendRequest } from "../services/friendRequest";
-import { getUserById } from "../services/user";
+import { getUserById } from "../services/auth";
+import { jwtDecode } from "jwt-decode";
 
 export default function SearchUser() {
     const location = useLocation();
@@ -14,21 +15,24 @@ export default function SearchUser() {
 
     // Get user ID from token in local storage
     useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const storedUserId = localStorage.getItem("token");
-                if (!storedUserId) {
-                    console.error("No user ID found in localStorage");
-                    return;
+            const fetchUser = async () => {
+                try {
+                    const token = localStorage.getItem("token");
+                    if (!token) {
+                        console.error("No token found in localStorage");
+                        return;
+                    }
+                    const tokenData = jwtDecode(token);
+                    const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
+                    const userData = await getUserById(userIdBytoken);
+                    setAccountID(userData.data);
+                } catch (error) {
+                    console.error("Failed to fetch user:", error);
                 }
-                const response = await getUserById(storedUserId);
-                setAccountID(response.data.id); 
-            } catch (error) {
-                console.error("Failed to fetch user:", error);
-            }
-        };
-        fetchUser();
-    }, []);
+            };
+            fetchUser();
+        }, []);
+    
 
     return (
         <div className="wrapper">
@@ -75,7 +79,7 @@ const ListUser = ({ searchResult, accountID }) => {
                                     <div className="d-flex flex-wrap justify-content-between align-items-start">
                                         <div className="profile-detail d-flex">
                                             <div className="profile-img pe-4">
-                                                <img src="./src/assets/images/user/05.jpg" alt="profile-img" className="avatar-130 img-fluid rounded-circle" />
+                                                <img src={`https://localhost:7174/${user.avatar}`} alt="profile-img" className="avatar-130 img-fluid rounded-circle" />
                                             </div>
                                             <div className="user-data-block">
                                                 <h4>
@@ -89,12 +93,21 @@ const ListUser = ({ searchResult, accountID }) => {
                                         </div>
                                         <div>
                                             <button className="btn btn-primary me-2">Follow</button>
-                                            <button
-                                                className="btn btn-outline-primary"
-                                                onClick={(e) => handleSubmitAddFriend(e, user.id)}
-                                            >
-                                                Add Friend
-                                            </button>
+                                            {user.checkFriend == 2 ? (
+                                                <button
+                                                    className="btn btn-outline-primary"
+                                                    onClick={(e) => handleSubmitAddFriend(e, user.id)}
+                                                >
+                                                    Add Friend
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    className="btn btn-outline-primary"
+                                                    onClick={(e) => handleSubmitAddFriend(e, user.id)}
+                                                >
+                                                    Cancel add friend
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

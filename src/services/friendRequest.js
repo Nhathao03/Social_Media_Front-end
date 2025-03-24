@@ -20,3 +20,29 @@ export const getFriendRequestsBySenderID = async(senderID) => {
         }
     })
 }
+
+export const ConfirmFriendRequest = async(id) => {
+    return axios.put(`${API_URL}/ConfirmRequest/${id}`,
+        {
+        headers:{
+            'Content-Type' :'application/json',
+        }
+    })      
+}
+
+export const RefuseRequest = async(id) => {
+    return axios.put(`${API_URL}/RefuseRequest/${id}`,
+        {
+        headers:{
+            'Content-Type' :'application/json',
+        }
+    })      
+}
+
+export const confirmRequest = async (id) => {
+    return axios.put(`${API_URL}/confirmRequest/${id}`);
+}
+
+export const rejectFriendRequest = async (id) => {
+    return axios.delete(`${API_URL}/rejectFriendRequest/${id}`);
+}
