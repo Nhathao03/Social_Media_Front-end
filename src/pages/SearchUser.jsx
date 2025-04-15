@@ -15,24 +15,24 @@ export default function SearchUser() {
 
     // Get user ID from token in local storage
     useEffect(() => {
-            const fetchUser = async () => {
-                try {
-                    const token = localStorage.getItem("token");
-                    if (!token) {
-                        console.error("No token found in localStorage");
-                        return;
-                    }
-                    const tokenData = jwtDecode(token);
-                    const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
-                    const userData = await getUserById(userIdBytoken);
-                    setAccountID(userData.data);
-                } catch (error) {
-                    console.error("Failed to fetch user:", error);
+        const fetchUser = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    console.error("No token found in localStorage");
+                    return;
                 }
-            };
-            fetchUser();
-        }, []);
-    
+                const tokenData = jwtDecode(token);
+                const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
+                const userData = await getUserById(userIdBytoken);
+                setAccountID(userData.data);
+            } catch (error) {
+                console.error("Failed to fetch user:", error);
+            }
+        };
+        fetchUser();
+    }, []);
+
 
     return (
         <div className="wrapper">
@@ -93,21 +93,31 @@ const ListUser = ({ searchResult, accountID }) => {
                                         </div>
                                         <div>
                                             <button className="btn btn-primary me-2">Follow</button>
-                                            {user.checkFriend == 2 ? (
-                                                <button
-                                                    className="btn btn-outline-primary"
-                                                    onClick={(e) => handleSubmitAddFriend(e, user.id)}
-                                                >
-                                                    Add Friend
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    className="btn btn-outline-primary"
-                                                    onClick={(e) => handleSubmitAddFriend(e, user.id)}
-                                                >
-                                                    Cancel add friend
-                                                </button>
-                                            )}
+                                            {
+                                                user.checkFriend == 2 ? (
+                                                    <button
+                                                        className="btn btn-outline-danger"
+                                                        onClick={(e) => handleSubmitAddFriend(e, user.id)}
+                                                    >
+                                                        Unfriend
+                                                    </button>
+                                                ) : user.checkFriend == 1 ? (
+                                                    <button
+                                                        className="btn btn-outline-primary"
+                                                        onClick={(e) => handleSubmitAddFriend(e, user.id)}
+                                                    >
+                                                        Cancel Add Friend
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        className="btn btn-outline-primary"
+                                                        onClick={(e) => handleSubmitAddFriend(e, user.id)}
+                                                    >
+                                                        Add Friend
+                                                    </button>
+                                                )
+                                            }
+
                                         </div>
                                     </div>
                                 </div>

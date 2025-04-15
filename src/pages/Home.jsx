@@ -406,7 +406,7 @@ const GetAllPost = () => {
                             <div className="mt-3">
                                 <p>{post.content}</p>
                             </div>
-                            {!post ? (
+                            {post ? (
                                 <div className="user-post">
                                     <div className="d-grid grid-rows-2 grid-flow-col gap-3">
                                         {post.postImages.map((image, index) => (

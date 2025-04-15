@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { login } from "../../services/auth"; 
+import { login } from "../../services/auth";
 import { useNavigate } from "react-router-dom";
-
+import { google_login } from "../../services/auth";
 const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -13,10 +13,22 @@ const Login = () => {
         try {
             const response = await login(email, password);
             const { token } = response.data;
-            localStorage.setItem("token",token); 
+            localStorage.setItem("token", token);
             setMessage("Login successful!");
-            setTimeout(() => navigate("/home"), 1000); 
+            setTimeout(() => navigate("/home"), 1000);
         } catch (error) {
+            setMessage(error.response?.data || "Login failed.");
+        }
+    };
+
+    const googleLogin = async () => {
+       try{
+            const response = await google_login();
+            const { token } = response.data;
+            localStorage.setItem("token", token);
+            setMessage("Login successful!");
+            setTimeout(() => navigate("/home"), 1000);
+        }catch(error) {
             setMessage(error.response?.data || "Login failed.");
         }
     };
@@ -24,16 +36,16 @@ const Login = () => {
     return (
         <section className="sign-in-page">
             <div id="container-inside">
-            <div id="circle-small"></div>
-            <div id="circle-medium"></div>
-            <div id="circle-large"></div>
-            <div id="circle-xlarge"></div>
-            <div id="circle-xxlarge"></div>
-        </div>
+                <div id="circle-small"></div>
+                <div id="circle-medium"></div>
+                <div id="circle-large"></div>
+                <div id="circle-xlarge"></div>
+                <div id="circle-xxlarge"></div>
+            </div>
             <div className="container p-0">
                 <div className="row no-gutters">
                     <div className="col-md-6 text-center pt-5">
-                        <div className="sign-in-detail text-white">                           
+                        <div className="sign-in-detail text-white">
                         </div>
                     </div>
                     <div className="col-md-6 bg-white pt-5 pb-5">
@@ -71,15 +83,28 @@ const Login = () => {
                                     </div>
                                     <button type="submit" className="btn btn-primary float-end">Sign in</button>
                                 </div>
+                                <div className="mt-3">
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-danger w-100"
+
+                                        onClick={googleLogin}
+                                    >
+                                        <i className="ri-google-line"></i> Login with Google
+                                    </button>
+                                </div>
+                                <div className="mt-3">
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-danger w-100"
+                                    >
+                                        <i className="ri-google-line"></i> Login with Google
+                                    </button>
+                                </div>
                                 <div className="sign-info">
                                     <span className="dark-color d-inline-block line-height-2">
                                         Don't have an account? <a href="/register">Sign up</a>
                                     </span>
-                                    <ul className="iq-social-media">
-                                        <li><a href="#"><i className="ri-facebook-box-line"></i></a></li>
-                                        <li><a href="#"><i className="ri-twitter-line"></i></a></li>
-                                        <li><a href="#"><i className="ri-instagram-line"></i></a></li>
-                                    </ul>
                                 </div>
                             </form>
                         </div>

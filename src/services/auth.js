@@ -65,3 +65,7 @@ export const UpdatePersonalInformation = async (userID, fullname, addressID, bir
     }
     );
 }
+
+export const google_login = async () => {
+    return axios.get(`${API_URL}/google-login`);
+}

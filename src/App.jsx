@@ -8,6 +8,7 @@ import SearchUser from "./pages/SearchUser";
 import Profile from "./pages/Profile";
 import FriendRequest from "./pages/FriendRequest";
 import EditProfile from "./pages/individual/EditProfile";
+import Chat from "./pages/chat/chat";
 import './assets/css/libs.min.css';
 import './assets/css/socialv.css';
 import './assets/vendor/@fortawesome/fontawesome-free/css/all.min.css';
@@ -29,6 +30,7 @@ function Account() {
                 <Route path="/profile/:userID" element={<Profile />} />
                 <Route path="/friendrequest" element={<FriendRequest/>}/>
                 <Route path="/edit_profile" element={<EditProfile/>}/>
+                <Route path="/chat" element={<Chat/>}/>
             </Routes>
         </Router>
     );

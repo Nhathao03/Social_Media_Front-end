@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getUserById, logout, findUser } from "../services/auth";
 import { useNavigate } from "react-router-dom";
-import { getFriendRequestsBySenderID, rejectFriendRequest, confirmRequest } from "../services/friendRequest";
+import { getFriendRequestsByIdUser, getFriendRequestsBySenderID, rejectFriendRequest, confirmRequest } from "../services/friendRequest";
 import { addFriend } from "../services/friend";
 import { jwtDecode } from "jwt-decode";
 
@@ -53,9 +53,13 @@ export default function Header() {
       for (let i = 0; i < listfriendRequest.data.length; i++) {
         for (let j = 0; j < response.data.length; j++) {
           if (listfriendRequest.data[i].receiverID == response.data[j].id) {
-            response.data[j].checkFriend = 1;
+            if(listfriendRequest.data[i].status == 1) {
+              response.data[j].checkFriend = listfriendRequest.data[i].status;
+            }else{
+              response.data[j].checkFriend = listfriendRequest.data[i].status;
+            }
           } else {
-            response.data[j].checkFriend = 2;
+            response.data[j].checkFriend = 0;
           }
         }
       }
@@ -340,15 +344,15 @@ const FriendRequest = ({ user }) => {
     const fetchListRequest = async () => {
       if (!user?.id) return; // Prevent API call if user ID is undefined
       try {
-        const response = await getFriendRequestsBySenderID(user.id);
+        const response = await getFriendRequestsByIdUser(user.id);
         const fetchUser = await Promise.all(
           response.data.map(async (data) => {
             try {
               // Fetch user information
-              const fetchUsername = await getUserById(data.receiverID);
+              const fetchUsername = await getUserById(data.senderID);
               return { ...data, username: fetchUsername.data.fullname };
             } catch (userFetchError) {
-              console.error(`Failed to fetch user details for ID ${data.receiverID}:`, userFetchError);
+              console.error(`Failed to fetch user details for ID ${data.senderID}:`, userFetchError);
               return { ...data, username: "Unknown User" }; // Fallback value
             }
           })
@@ -392,7 +396,6 @@ const FriendRequest = ({ user }) => {
           <div className="header-title">
             <h5 className="mb-0 text-white">Friend Request</h5>
           </div>
-          <small className="badge  bg-light text-dark ">4</small>
         </div>
         <div className="card-body p-0">
           {listData.map((data) => (
