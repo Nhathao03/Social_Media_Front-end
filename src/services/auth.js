@@ -69,3 +69,11 @@ export const UpdatePersonalInformation = async (userID, fullname, addressID, bir
 export const google_login = async () => {
     return axios.get(`${API_URL}/google-login`);
 }
+
+export const decodeToken = async (token) => {
+    return axios.post(`${API_URL}/decode`, JSON.stringify(token), {
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+};

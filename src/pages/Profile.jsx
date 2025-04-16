@@ -4,36 +4,34 @@ import RightSidebar from "../layout/RightSidebar";
 import Footer from "../layout/Footer";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getUserById } from "../services/auth";
+import { getUserById, decodeToken } from "../services/auth";
 import { deletePostById, getPostByUserID } from "../services/post";
 import { AddLike } from "../services/likes";
 import { createComment } from "../services/comment";
 import { uploadfile, UploadFileComment } from "../services/uploadfile";
-import { jwtDecode } from "jwt-decode";
 
 export default function Profile() {
     const [accountID, setMyAccountID] = useState(null);
     const [userData, setuserData] = useState(null);
     const { userID } = useParams();
     // get Username base on token in local storage
-    useEffect(() => {
+      useEffect(() => {
         const fetchUser = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) {
-                    console.error("No token found in localStorage");
-                    return;
-                }
-                const tokenData = jwtDecode(token);
-                const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
-                const userData = await getUserById(userIdBytoken);
-                setMyAccountID(userData.data);
-            } catch (error) {
-                console.error("Failed to fetch user:", error);
+          try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+              console.error("No token found in localStorage");
+              return;
             }
+            const tokenData = await decodeToken(token);
+            const userData = await getUserById(tokenData.data.payload.userID);
+            setMyAccountID(userData.data);
+          } catch (error) {
+            console.error("Failed to fetch user:", error);
+          }
         };
         fetchUser();
-    }, []);
+      }, []);
 
 
     //get information user to display in profile 

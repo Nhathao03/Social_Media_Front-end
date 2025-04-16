@@ -13,38 +13,20 @@ export const addFriendRequest = async (senderID, receiverID) => {
     })
 } 
 
-export const getFriendRequestsByIdUser = async(ID) => {
-    return axios.get(`${API_URL}/getFriendRequestsByIdUser/${ID}`,{
+export const GetFriendRequestByReceiverID = async(ID) => {
+    return axios.get(`${API_URL}/GetFriendRequestByReceiverID/${ID}`,{
         headers:{
             'Content-Type' :'application/json',
         }
     })
 }
 
-export const getFriendRequestsBySenderID = async(ID) => {
-    return axios.get(`${API_URL}/getFriendRequestsBySenderID/${ID}`,{
+export const getFriendRequestByUserID = async(ID) => {
+    return axios.get(`${API_URL}/getFriendRequestByUserID/${ID}`,{
         headers:{
             'Content-Type' :'application/json',
         }
     })
-}
-
-export const ConfirmFriendRequest = async(id) => {
-    return axios.put(`${API_URL}/ConfirmRequest/${id}`,
-        {
-        headers:{
-            'Content-Type' :'application/json',
-        }
-    })      
-}
-
-export const RefuseRequest = async(id) => {
-    return axios.put(`${API_URL}/RefuseRequest/${id}`,
-        {
-        headers:{
-            'Content-Type' :'application/json',
-        }
-    })      
 }
 
 export const confirmRequest = async (id) => {

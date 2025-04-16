@@ -5,8 +5,7 @@ import Footer from "../layout/Footer";
 import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { addFriendRequest } from "../services/friendRequest";
-import { getUserById } from "../services/auth";
-import { jwtDecode } from "jwt-decode";
+import { getUserById, decodeToken } from "../services/auth";
 
 export default function SearchUser() {
     const location = useLocation();
@@ -14,24 +13,23 @@ export default function SearchUser() {
     const [accountID, setAccountID] = useState(null);
 
     // Get user ID from token in local storage
-    useEffect(() => {
+      useEffect(() => {
         const fetchUser = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) {
-                    console.error("No token found in localStorage");
-                    return;
-                }
-                const tokenData = jwtDecode(token);
-                const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
-                const userData = await getUserById(userIdBytoken);
-                setAccountID(userData.data);
-            } catch (error) {
-                console.error("Failed to fetch user:", error);
+          try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+              console.error("No token found in localStorage");
+              return;
             }
+            const tokenData = await decodeToken(token);
+            const userData = await getUserById(tokenData.data.payload.userID);
+            setAccountID(userData.data);
+          } catch (error) {
+            console.error("Failed to fetch user:", error);
+          }
         };
         fetchUser();
-    }, []);
+      }, []);
 
 
     return (

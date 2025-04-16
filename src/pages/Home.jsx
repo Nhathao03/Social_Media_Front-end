@@ -3,7 +3,7 @@ import LeftSidebar from "../layout/LeftSidebar";
 import RightSidebar from "../layout/RightSidebar";
 import Footer from "../layout/Footer";
 import { createpost, GetAllPostNearestCreatedAt, deletePostById } from "../services/post";
-import { getUserById } from "../services/auth";
+import { getUserById , decodeToken} from "../services/auth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { uploadfile, UploadFileComment } from "../services/uploadfile";
@@ -50,24 +50,23 @@ const CreatePost = () => {
     const navigate = useNavigate();
 
     //get token user from local storage
-    useEffect(() => {
+      useEffect(() => {
         const fetchUser = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) {
-                    console.error("No token found in localStorage");
-                    return;
-                }
-                const tokenData = jwtDecode(token);
-                const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
-                const userData = await getUserById(userIdBytoken);
-                setUserID(userData.data);
-            } catch (error) {
-                console.error("Failed to fetch user:", error);
+          try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+              console.error("No token found in localStorage");
+              return;
             }
+            const tokenData = await decodeToken(token);
+            const userData = await getUserById(tokenData.data.payload.userID);
+            setUserID(userData.data);
+          } catch (error) {
+            console.error("Failed to fetch user:", error);
+          }
         };
         fetchUser();
-    }, []);
+      }, []);
 
 
     useEffect(() => {

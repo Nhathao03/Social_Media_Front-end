@@ -15,5 +15,8 @@ export const getFriendRecentlyAdded = async (userID) => {
     return axios.get(`${API_URL}/getFriendRecentlyAdded/${userID}`);
 }
 
+export const GetFriendBaseOnHomeTown = async (userID) => {
+    return axios.get(`${API_URL}/GetFriendBaseOnHomeTown/${userID}`);
+}
 
 
