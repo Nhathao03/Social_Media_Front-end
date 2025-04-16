@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { getUserById, logout, findUser } from "../services/auth";
+import { getUserById, logout, findUser, decodeToken } from "../services/auth";
 import { useNavigate } from "react-router-dom";
-import { getFriendRequestsByIdUser, getFriendRequestsBySenderID, rejectFriendRequest, confirmRequest } from "../services/friendRequest";
+import { GetFriendRequestByReceiverID,getFriendRequestByUserID, rejectFriendRequest, confirmRequest } from "../services/friendRequest";
 import { addFriend } from "../services/friend";
-import { jwtDecode } from "jwt-decode";
 
 export default function Header() {
   const [user, setUser] = useState(null);
@@ -22,9 +21,8 @@ export default function Header() {
           console.error("No token found in localStorage");
           return;
         }
-        const tokenData = jwtDecode(token);
-        const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
-        const userData = await getUserById(userIdBytoken);
+        const tokenData = await decodeToken(token);
+        const userData = await getUserById(tokenData.data.payload.userID);
         setUser(userData.data);
       } catch (error) {
         console.error("Failed to fetch user:", error);
@@ -43,32 +41,42 @@ export default function Header() {
   //search user by email, phonenumber, username
   const handleSearchUserBystringData = async (e) => {
     e.preventDefault();
+  
     if (!stringData) {
-      alert("Please fill username, phonenumber, email.");
+      alert("Please fill in username, phone number, or email.");
       return;
     }
+  
     try {
-      const listfriendRequest = await getFriendRequestsBySenderID(user.id);
-      const response = await findUser(stringData);
-      for (let i = 0; i < listfriendRequest.data.length; i++) {
-        for (let j = 0; j < response.data.length; j++) {
-          if (listfriendRequest.data[i].receiverID == response.data[j].id) {
-            if(listfriendRequest.data[i].status == 1) {
-              response.data[j].checkFriend = listfriendRequest.data[i].status;
-            }else{
-              response.data[j].checkFriend = listfriendRequest.data[i].status;
-            }
-          } else {
-            response.data[j].checkFriend = 0;
-          }
-        }
-      }
-      navigate("/search_user", { state: { searchResult: response.data } });
+      const [listfriendRequest, response] = await Promise.all([
+        getFriendRequestByUserID(user.id),
+        findUser(stringData),
+      ]);
+  
+      const requests = listfriendRequest.data;
+      const users = response.data;
+  
+      // Loop through found users
+      const updatedUsers = users.map((searchUser) => {
+        const matchedRequest = requests.find((req) => 
+          (req.senderID === user.id && req.receiverID === searchUser.id) ||
+          (req.receiverID === user.id && req.senderID === searchUser.id)
+        );
+  
+        return {
+          ...searchUser,
+          checkFriend: matchedRequest ? matchedRequest.status : 0,
+        };
+      });
+  
+      console.log("Search result:", updatedUsers);
+      navigate("/search_user", { state: { searchResult: updatedUsers } });
+  
     } catch (error) {
       console.error("Failed to fetch user:", error);
     }
   };
-
+  
   return (
     <div className="iq-top-navbar">
       <div className="iq-navbar-custom">
@@ -344,7 +352,7 @@ const FriendRequest = ({ user }) => {
     const fetchListRequest = async () => {
       if (!user?.id) return; // Prevent API call if user ID is undefined
       try {
-        const response = await getFriendRequestsByIdUser(user.id);
+        const response = await GetFriendRequestByReceiverID(user.id);
         const fetchUser = await Promise.all(
           response.data.map(async (data) => {
             try {
