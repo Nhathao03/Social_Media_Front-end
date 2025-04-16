@@ -6,12 +6,17 @@ export const addFriend = async (id) => {
     return axios.post(`${API_URL}/addFriend/${id}`);
 }
 
-export const getAllFriend = async () => {
-    return axios.get(`${API_URL}/getAllFriend`);
+
+export const getFriendOfEachUser = async (userID) => {
+    return axios.get(`${API_URL}/getFriendOfEachUser/${userID}`);
 }
 
-export const getAllFriendByUserID = async (userID) => {
-    return axios.get(`${API_URL}/getAllFriendByUserID/${userID}`);
+export const getFriendRecentlyAdded = async (userID) => {
+    return axios.get(`${API_URL}/getFriendRecentlyAdded/${userID}`);
+}
+
+export const GetFriendBaseOnHomeTown = async (userID) => {
+    return axios.get(`${API_URL}/GetFriendBaseOnHomeTown/${userID}`);
 }
 
 

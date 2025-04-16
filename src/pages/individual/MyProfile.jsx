@@ -3,35 +3,34 @@ import LeftSidebar from "../../layout/LeftSidebar";
 import RightSidebar from "../../layout/RightSidebar";
 import Footer from "../../layout/Footer";
 import { useEffect, useState } from "react";
-import { getUserById } from "../../services/auth";
-import { deletePostById, getPostByUserID ,GetAllPostNearestCreatedAt} from "../../services/post";
+import { getUserById ,decodeToken } from "../../services/auth";
+import { deletePostById, getPostByUserID, GetAllPostNearestCreatedAt } from "../../services/post";
 import { AddLike } from "../../services/likes";
 import { createComment } from "../../services/comment";
 import { uploadfile, UploadFileComment } from "../../services/uploadfile";
-import { getAllFriend , getAllFriendByUserID} from "../../services/friend";
-import { jwtDecode } from "jwt-decode";
+import { getFriendOfEachUser, getFriendRecentlyAdded, GetFriendBaseOnHomeTown } from "../../services/friend";
+import { getPostImagesByUserID } from "../../services/postImage";
 
 export default function MyProfile() {
     const [user, setUser] = useState(null);
     // get Username base on token in local storage
-    useEffect(() => {
+      useEffect(() => {
         const fetchUser = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) {
-                    console.error("No token found in localStorage");
-                    return;
-                }
-                const tokenData = jwtDecode(token);
-                const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
-                const userData = await getUserById(userIdBytoken);
-                setUser(userData.data);
-            } catch (error) {
-                console.error("Failed to fetch user:", error);
+          try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+              console.error("No token found in localStorage");
+              return;
             }
+            const tokenData = await decodeToken(token);
+            const userData = await getUserById(tokenData.data.payload.userID);
+            setUser(userData.data);
+          } catch (error) {
+            console.error("Failed to fetch user:", error);
+          }
         };
         fetchUser();
-    }, []);
+      }, []);
 
     return (
         <div className="wrapper">
@@ -50,7 +49,7 @@ export default function MyProfile() {
                                 <TimeLine user={user} />
                                 <About />
                                 <Friends user={user} />
-                                <Photos />
+                                <Photos user={user} />
                             </div>
                         </div>
                     </div>
@@ -449,7 +448,7 @@ const TimeLineRightContent = ({ user }) => {
     const [posts, setPosts] = useState([]);
     const [content, setContent] = useState("");
     const sticker = useState("");
-    const [ImageCmt, setImageComment] = useState([null]);
+    const [ImageCmt, setImageComment] = useState(null);
     const [message, setMessage] = useState("");
     const [fullname, setFullname] = useState("");
     const [Avatar, setAvatar] = useState(null);
@@ -466,7 +465,7 @@ const TimeLineRightContent = ({ user }) => {
                         const updatedComments = await Promise.all(
                             post.comments.map(async (comment) => {
                                 const fetchUsernamecomment = await getUserById(comment.userId);
-                                return { ...comment, username_comment: fetchUsernamecomment.data.fullname };
+                                return { ...comment, username_comment: fetchUsernamecomment.data.fullname, avatar_comment: fetchUsernamecomment.data.avatar };
                             })
                         );
                         // Fetch usernames for each like author
@@ -526,6 +525,7 @@ const TimeLineRightContent = ({ user }) => {
             setImageComment(ListUrl);
         }
     };
+
     //handle submit comment
     const handleSubmitComment = async (e, postID) => {
         e.preventDefault();
@@ -536,6 +536,7 @@ const TimeLineRightContent = ({ user }) => {
         try {
             await createComment(user, postID, content, ImageCmt, sticker);
             setMessage("Comment created successfully!");
+            window.location.reload();
         } catch (error) {
             setMessage(error.response?.data || "Failed to create comment.");
         }
@@ -563,7 +564,7 @@ const TimeLineRightContent = ({ user }) => {
                             <div className="user-post-data pb-3">
                                 <div className="d-flex justify-content-between">
                                     <div className="me-3">
-                                        <img className="rounded-circle  avatar-60"  src={Avatar}  alt="" />
+                                        <img className="rounded-circle  avatar-60" src={Avatar} alt="" />
                                     </div>
                                     <div className="w-100">
                                         <div className="d-flex justify-content-between flex-wrap">
@@ -710,7 +711,7 @@ const TimeLineRightContent = ({ user }) => {
                                         <li className="mb-2">
                                             <div className="d-flex">
                                                 <div className="user-img">
-                                                    <img src="./src/assets/images/user/02.jpg" alt="userimg" className="avatar-35 rounded-circle img-fluid" />
+                                                    <img src={`https://localhost:7174/${comment.avatar_comment}`} alt="userimg" className="avatar-35 rounded-circle img-fluid" />
                                                 </div>
                                                 <div className="comment-data-block ms-3">
                                                     <h6>{comment.username_comment}</h6>
@@ -751,7 +752,7 @@ const TimeLineRightContent = ({ user }) => {
     );
 }
 
-const About = ({user}) => {
+const About = ({ user }) => {
 
     return (
         <div className="tab-pane fade" id="about" role="tabpanel" >
@@ -791,14 +792,13 @@ const AboutLeftContent = () => {
     );
 }
 
-const AboutRightContent = ({user}) => {
+const AboutRightContent = ({ user }) => {
     const [fullname, setFullname] = useState("");
     const [userID, setUserID] = useState("");
     const [birth, setBirth] = useState("");
     const [gender, setGender] = useState("");
     const [previewImage, setPreviewImage] = useState(null);
 
-    console.log(user);
     useEffect(() => {
         if (user) {
             setFullname(user.fullname || "");
@@ -1075,31 +1075,69 @@ const AboutRightContent = ({user}) => {
     );
 }
 
-const Friends = ({user}) => {
-    const [friends, setFriends] = useState([]);
-    const [userID, setUserID] = useState(user?.id);
+const Friends = ({ user }) => {
+    const [Allfriends, setAllFriends] = useState([]);
+    const [RecentlyAdd, setFriendsRecentlyAdd] = useState([]);
+    const [CloseFriends, setCloseFriends] = useState([]);
+    const [HomeTownFriends, setHomeTownFriends] = useState([]);
+    const [FollowingFriends, setFollowingFriends] = useState([]);
 
-    console.log(user);
 
-    console.log(userID);
     useEffect(() => {
-        const fetchFriends = async () => {
-            try{
-                const response = await getAllFriendByUserID(userID);
+        const fetchAllFriends = async () => {
+            if (!user) return;
+            try {
+                const response = await getFriendOfEachUser(user.id);
                 const friendsWithInfo = await Promise.all(
                     response.data.map(async (friend) => {
-                        const userInfo = await getUserById(friend.friendId);
-                        return { ...friend, ...userInfo.data };
+                        const otherUserId = friend.userID == user.id ? friend.friendID : friend.userID;
+                        const userInfo = await getUserById(otherUserId);
+                        return { ...friend, avatar: userInfo.data.avatar, fullname: userInfo.data.fullname, id_profile: otherUserId };
                     })
                 );
-                response.data = friendsWithInfo;
-                setFriends(response.data);
-            }catch(error){
+                setAllFriends(friendsWithInfo);
+            } catch (error) {
                 console.error("Failed to fetch friends:", error);
             }
         }
-        fetchFriends();
-    }, []);
+        fetchAllFriends();
+
+        const fetchRecentlyFriends = async () => {
+            if (!user) return;
+            try {
+                const response = await getFriendRecentlyAdded(user.id);
+                const friendsWithInfo = await Promise.all(
+                    response.data.map(async (friend) => {
+                        const otherUserId = friend.userID == user.id ? friend.friendID : friend.userID;
+                        const userInfo = await getUserById(otherUserId);
+                        return { ...friend, avatar: userInfo.data.avatar, fullname: userInfo.data.fullname, id_profile: otherUserId };
+                    })
+                );
+                setFriendsRecentlyAdd(friendsWithInfo);
+            } catch (error) {
+                console.error("Failed to fetch friends:", error);
+            }
+        }
+        fetchRecentlyFriends();
+
+        const fetchFriendsSameHomeTown = async () => {
+            if (!user) return;
+            try {
+                const response = await GetFriendBaseOnHomeTown(user.id);
+                const friendsWithInfo = await Promise.all(
+                    response.data.map(async (friend) => {
+                        const otherUserId = friend.userID == user.id ? friend.friendID : friend.userID;
+                        const userInfo = await getUserById(otherUserId);
+                        return { ...friend, avatar: userInfo.data.avatar, fullname: userInfo.data.fullname, id_profile: otherUserId };
+                    })
+                );
+                setHomeTownFriends(friendsWithInfo);
+            } catch (error) {
+                console.error("Failed to fetch friends:", error);
+            }
+        }
+        fetchFriendsSameHomeTown();
+    }, [user]);
     return (
         <div className="tab-pane fade" id="friends" role="tabpanel">
             <div className="card">
@@ -1108,7 +1146,7 @@ const Friends = ({user}) => {
                     <div className="friend-list-tab mt-2">
                         <ul className="nav nav-pills d-flex align-items-center justify-content-left friend-list-items p-0 mb-2">
                             <li>
-                                <a className="nav-link active" data-bs-toggle="pill" href="#pill-all-friends" data-bs-target="#all-feinds">All Friends</a>
+                                <a className="nav-link active" data-bs-toggle="pill" href="#pill-all-friends" data-bs-target="#all-friends">All Friends</a>
                             </li>
                             <li>
                                 <a className="nav-link" data-bs-toggle="pill" href="#pill-recently-add" data-bs-target="#recently-add">Recently Added</a>
@@ -1127,38 +1165,76 @@ const Friends = ({user}) => {
                             <div className="tab-pane fade active show" id="all-friends" role="tabpanel">
                                 <div className="card-body p-0">
                                     <div className="row">
-                                        {friends ? (
-                                        friends.map((friend) => (
-                                        <div className="col-md-6 col-lg-6 mb-3">
-                                            <div className="iq-friendlist-block">
-                                                <div className="d-flex align-items-center justify-content-between">
-                                                    <div className="d-flex align-items-center">
-                                                        <a href="#">
-                                                            <img src="./src/assets/images/user/05.jpg" alt="profile-img" className="img-fluid" />
-                                                        </a>
-                                                        <div className="friend-info ms-3">
-                                                            <h5>{friend.fullname}</h5>
-                                                            <p className="mb-0">15  friends</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="card-header-toolbar d-flex align-items-center">
-                                                        <div className="dropdown">
-                                                            <span className="dropdown-toggle btn btn-secondary me-2" id="dropdownMenuButton01" data-bs-toggle="dropdown" aria-expanded="true" role="button">
-                                                                <i className="ri-check-line me-1 text-white"></i> Friend
-                                                            </span>
-                                                            <div className="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton01">
-                                                                <a className="dropdown-item" href="#">Get Notification</a>
-                                                                <a className="dropdown-item" href="#">Close Friend</a>
-                                                                <a className="dropdown-item" href="#">Unfollow</a>
-                                                                <a className="dropdown-item" href="#">Unfriend</a>
-                                                                <a className="dropdown-item" href="#">Block</a>
+                                        {Allfriends ? (
+                                            Allfriends.map((friend) => (
+                                                <div className="col-md-6 col-lg-6 mb-3">
+                                                    <div className="iq-friendlist-block">
+                                                        <div className="d-flex align-items-center justify-content-between">
+                                                            <div className="d-flex align-items-center">
+                                                                <a href="#">
+                                                                    <img style={{ height: "150px" }} src={`https://localhost:7174/${friend.avatar}`} alt="profile-img" className="img-fluid" />
+                                                                </a>
+                                                                <div className="friend-info ms-3">
+                                                                    <h5><a href={`/profile/${friend.id_profile}`}>{friend.fullname}</a></h5>
+                                                                    <p className="mb-0">15  friends</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="card-header-toolbar d-flex align-items-center">
+                                                                <div className="dropdown">
+                                                                    <span className="dropdown-toggle btn btn-secondary me-2" id="dropdownMenuButton01" data-bs-toggle="dropdown" aria-expanded="true" role="button">
+                                                                        <i className="ri-check-line me-1 text-white"></i> Friend
+                                                                    </span>
+                                                                    <div className="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton01">
+                                                                        <a className="dropdown-item" href="#">Get Notification</a>
+                                                                        <a className="dropdown-item" href="#">Close Friend</a>
+                                                                        <a className="dropdown-item" href="#">Unfollow</a>
+                                                                        <a className="dropdown-item" href="#">Unfriend</a>
+                                                                        <a className="dropdown-item" href="#">Block</a>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        ))) : <p>No friends</p>}
+                                            ))) : <p>No friends</p>}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="tab-pane fade" id="recently-add" role="tabpanel">
+                                <div className="card-body p-0">
+                                    <div className="row">
+                                        {RecentlyAdd ? (
+                                            RecentlyAdd.map((friend) => (
+                                                <div className="col-md-6 col-lg-6 mb-3">
+                                                    <div className="iq-friendlist-block">
+                                                        <div className="d-flex align-items-center justify-content-between">
+                                                            <div className="d-flex align-items-center">
+                                                                <a href="#">
+                                                                    <img style={{ height: "150px" }} src={`https://localhost:7174/${friend.avatar}`} alt="profile-img" className="img-fluid" />
+                                                                </a>
+                                                                <div className="friend-info ms-3">
+                                                                    <h5><a href={`/profile/${friend.id_profile}`}>{friend.fullname}</a></h5>
+                                                                    <p className="mb-0">15  friends</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="card-header-toolbar d-flex align-items-center">
+                                                                <div className="dropdown">
+                                                                    <span className="dropdown-toggle btn btn-secondary me-2" id="dropdownMenuButton01" data-bs-toggle="dropdown" aria-expanded="true" role="button">
+                                                                        <i className="ri-check-line me-1 text-white"></i> Friend
+                                                                    </span>
+                                                                    <div className="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton01">
+                                                                        <a className="dropdown-item" href="#">Get Notification</a>
+                                                                        <a className="dropdown-item" href="#">Close Friend</a>
+                                                                        <a className="dropdown-item" href="#">Unfollow</a>
+                                                                        <a className="dropdown-item" href="#">Unfriend</a>
+                                                                        <a className="dropdown-item" href="#">Block</a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))) : <p>No friends</p>}
                                     </div>
                                 </div>
                             </div>
@@ -1200,35 +1276,38 @@ const Friends = ({user}) => {
                             <div className="tab-pane fade" id="home-town" role="tabpanel">
                                 <div className="card-body p-0">
                                     <div className="row">
-                                        <div className="col-md-6 col-lg-6 mb-3">
-                                            <div className="iq-friendlist-block">
-                                                <div className="d-flex align-items-center justify-content-between">
-                                                    <div className="d-flex align-items-center">
-                                                        <a href="#">
-                                                            <img src="./src/assets/images/user/07.jpg" alt="profile-img" className="img-fluid" />
-                                                        </a>
-                                                        <div className="friend-info ms-3">
-                                                            <h5>Maya Didas</h5>
-                                                            <p className="mb-0">12  friends</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="card-header-toolbar d-flex align-items-center">
-                                                        <div className="dropdown">
-                                                            <span className="dropdown-toggle btn btn-secondary me-2" id="dropdownMenuButton53" data-bs-toggle="dropdown" aria-expanded="true" role="button">
-                                                                <i className="ri-check-line me-1 text-white"></i> Friend
-                                                            </span>
-                                                            <div className="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton53">
-                                                                <a className="dropdown-item" href="#">Get Notification</a>
-                                                                <a className="dropdown-item" href="#">Close Friend</a>
-                                                                <a className="dropdown-item" href="#">Unfollow</a>
-                                                                <a className="dropdown-item" href="#">Unfriend</a>
-                                                                <a className="dropdown-item" href="#">Block</a>
+                                        {HomeTownFriends ? (
+                                            HomeTownFriends.map((friend) => (
+                                                <div className="col-md-6 col-lg-6 mb-3">
+                                                    <div className="iq-friendlist-block">
+                                                        <div className="d-flex align-items-center justify-content-between">
+                                                            <div className="d-flex align-items-center">
+                                                                <a href="#">
+                                                                    <img style={{ height: "150px" }} src={`https://localhost:7174/${friend.avatar}`} alt="profile-img" className="img-fluid" />
+                                                                </a>
+                                                                <div className="friend-info ms-3">
+                                                                    <h5><a href={`/profile/${friend.id_profile}`}>{friend.fullname}</a></h5>
+                                                                    <p className="mb-0">15  friends</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="card-header-toolbar d-flex align-items-center">
+                                                                <div className="dropdown">
+                                                                    <span className="dropdown-toggle btn btn-secondary me-2" id="dropdownMenuButton01" data-bs-toggle="dropdown" aria-expanded="true" role="button">
+                                                                        <i className="ri-check-line me-1 text-white"></i> Friend
+                                                                    </span>
+                                                                    <div className="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton01">
+                                                                        <a className="dropdown-item" href="#">Get Notification</a>
+                                                                        <a className="dropdown-item" href="#">Close Friend</a>
+                                                                        <a className="dropdown-item" href="#">Unfollow</a>
+                                                                        <a className="dropdown-item" href="#">Unfriend</a>
+                                                                        <a className="dropdown-item" href="#">Block</a>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
+                                            ))) : <p>No friends</p>}
                                     </div>
                                 </div>
                             </div>
@@ -1275,7 +1354,20 @@ const Friends = ({user}) => {
     );
 }
 
-const Photos = () => {
+const Photos = ({user}) => {
+    const [Images, setImages] = useState([]);
+    useEffect (() => {
+        const fetchImages = async () => {
+            if(!user) return;
+            try{
+                const response = await getPostImagesByUserID(user.id);
+                setImages(response.data);
+            }catch(error){
+                console.error("Failed to fetch posts:", error);
+            }
+        }
+        fetchImages();
+    }, [user]);
     return (
         <div className="tab-pane fade" id="photos" role="tabpanel">
             <div className="card">
@@ -1294,23 +1386,26 @@ const Photos = () => {
                             <div className="tab-pane fade active show" id="photosofyou" role="tabpanel">
                                 <div className="card-body p-0">
                                     <div className="d-grid gap-2 d-grid-template-1fr-13">
-                                        <div className="">
-                                            <div className="user-images position-relative overflow-hidden">
-                                                <a href="#">
-                                                    <img src="./src/assets/images/page-img/59.jpg" className="img-fluid rounded" alt="Responsive image" />
-                                                </a>
-                                                <div className="image-hover-data">
-                                                    <div className="product-elements-icon">
-                                                        <ul className="d-flex align-items-center m-0 p-0 list-inline">
-                                                            <li><a href="#" className="pe-3 text-white"> 60 <i className="ri-thumb-up-line"></i> </a></li>
-                                                            <li><a href="#" className="pe-3 text-white"> 30 <i className="ri-chat-3-line"></i> </a></li>
-                                                            <li><a href="#" className="pe-3 text-white"> 10 <i className="ri-share-forward-line"></i> </a></li>
-                                                        </ul>
+                                        {Images ? (
+                                            Images.map((image) => (
+                                                <div className="">
+                                                    <div className="user-images position-relative overflow-hidden">
+                                                        <a href="#">
+                                                            <img src={`https://localhost:7174/${image.url}`} className="img-fluid rounded" alt="Responsive image" />
+                                                        </a>
+                                                        <div className="image-hover-data">
+                                                            <div className="product-elements-icon">
+                                                                <ul className="d-flex align-items-center m-0 p-0 list-inline">
+                                                                    <li><a href="#" className="pe-3 text-white"> 60 <i className="ri-thumb-up-line"></i> </a></li>
+                                                                    <li><a href="#" className="pe-3 text-white"> 30 <i className="ri-chat-3-line"></i> </a></li>
+                                                                    <li><a href="#" className="pe-3 text-white"> 10 <i className="ri-share-forward-line"></i> </a></li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                        <a href="#" className="image-edit-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Edit or Remove"><i className="ri-edit-2-fill"></i></a>
                                                     </div>
                                                 </div>
-                                                <a href="#" className="image-edit-btn" data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Edit or Remove"><i className="ri-edit-2-fill"></i></a>
-                                            </div>
-                                        </div>
+                                            ))) : <Loading />}
                                     </div>
                                 </div>
                             </div>

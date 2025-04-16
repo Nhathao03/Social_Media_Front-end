@@ -4,7 +4,7 @@ const API_URL = "https://localhost:7174/api/friendsRequest";
 
 export const addFriendRequest = async (senderID, receiverID) => {
     return axios.post(`${API_URL}/addFriendRequest`,{
-        senderID,
+        senderID : senderID.id,
         receiverID
     },{
         headers:{
@@ -13,30 +13,20 @@ export const addFriendRequest = async (senderID, receiverID) => {
     })
 } 
 
-export const getFriendRequestsBySenderID = async(senderID) => {
-    return axios.get(`${API_URL}/getFriendRequestsBySenderID/${senderID}`,{
+export const GetFriendRequestByReceiverID = async(ID) => {
+    return axios.get(`${API_URL}/GetFriendRequestByReceiverID/${ID}`,{
         headers:{
             'Content-Type' :'application/json',
         }
     })
 }
 
-export const ConfirmFriendRequest = async(id) => {
-    return axios.put(`${API_URL}/ConfirmRequest/${id}`,
-        {
+export const getFriendRequestByUserID = async(ID) => {
+    return axios.get(`${API_URL}/getFriendRequestByUserID/${ID}`,{
         headers:{
             'Content-Type' :'application/json',
         }
-    })      
-}
-
-export const RefuseRequest = async(id) => {
-    return axios.put(`${API_URL}/RefuseRequest/${id}`,
-        {
-        headers:{
-            'Content-Type' :'application/json',
-        }
-    })      
+    })
 }
 
 export const confirmRequest = async (id) => {

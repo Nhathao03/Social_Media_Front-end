@@ -9,3 +9,11 @@ export const getAllPostImage = async () => {
         }
     });
 }
+
+export const getPostImagesByUserID = async (userID) => {
+    return axios.get(`${API_URL}/getPostImagesByUserID/${userID}`, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    });
+}

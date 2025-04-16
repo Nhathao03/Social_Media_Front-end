@@ -4,36 +4,34 @@ import RightSidebar from "../layout/RightSidebar";
 import Footer from "../layout/Footer";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getUserById } from "../services/auth";
+import { getUserById, decodeToken } from "../services/auth";
 import { deletePostById, getPostByUserID } from "../services/post";
 import { AddLike } from "../services/likes";
 import { createComment } from "../services/comment";
 import { uploadfile, UploadFileComment } from "../services/uploadfile";
-import { jwtDecode } from "jwt-decode";
 
 export default function Profile() {
     const [accountID, setMyAccountID] = useState(null);
     const [userData, setuserData] = useState(null);
     const { userID } = useParams();
     // get Username base on token in local storage
-    useEffect(() => {
+      useEffect(() => {
         const fetchUser = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) {
-                    console.error("No token found in localStorage");
-                    return;
-                }
-                const tokenData = jwtDecode(token);
-                const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
-                const userData = await getUserById(userIdBytoken);
-                setMyAccountID(userData.data);
-            } catch (error) {
-                console.error("Failed to fetch user:", error);
+          try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+              console.error("No token found in localStorage");
+              return;
             }
+            const tokenData = await decodeToken(token);
+            const userData = await getUserById(tokenData.data.payload.userID);
+            setMyAccountID(userData.data);
+          } catch (error) {
+            console.error("Failed to fetch user:", error);
+          }
         };
         fetchUser();
-    }, []);
+      }, []);
 
 
     //get information user to display in profile 
@@ -532,199 +530,199 @@ const TimeLineRightContent = ({ userData }) => {
         <div className="col-lg-8">
 
             {posts.length > 0 ? (
-            posts.map((post) => (
-                <div className="card" key={post.id}>
-                    <div className="card-body">
-                        <div className="post-item">
-                            <div className="user-post-data pb-3">
-                                <div className="d-flex justify-content-between">
-                                    <div className="me-3">
-                                        <img className="rounded-circle  avatar-60" src="/src/assets/images/user/1.jpg" alt="" />
-                                    </div>
-                                    <div className="w-100">
-                                        <div className="d-flex justify-content-between flex-wrap">
-                                            <div className="">
-                                                {userData ? (
-                                                    <h5 className="mb-0 d-inline-block"><a href="#" className="">{userData.fullname}</a></h5>
-                                                ) : null}
-                                                <p className="ms-1 mb-0 d-inline-block">Add New Post</p>
-                                                {/* <p className="mb-0">{formatDate(post.createAt)}</p> */}
-                                            </div>
-                                            <div className="card-post-toolbar">
-                                                <div className="dropdown">
-                                                    <span className="dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="button">
-                                                        <i className="ri-more-fill"></i>
-                                                    </span>
-                                                    <div className="dropdown-menu m-0 p-0">
-                                                        <a className="dropdown-item p-3" href="#">
-                                                            <div className="d-flex align-items-top">
-                                                                <i className="ri-save-line h4"></i>
-                                                                <div className="data ms-2">
-                                                                    <h6>Save Post</h6>
-                                                                    <p className="mb-0">Add this to your saved items</p>
+                posts.map((post) => (
+                    <div className="card" key={post.id}>
+                        <div className="card-body">
+                            <div className="post-item">
+                                <div className="user-post-data pb-3">
+                                    <div className="d-flex justify-content-between">
+                                        <div className="me-3">
+                                            <img className="rounded-circle  avatar-60" src="/src/assets/images/user/1.jpg" alt="" />
+                                        </div>
+                                        <div className="w-100">
+                                            <div className="d-flex justify-content-between flex-wrap">
+                                                <div className="">
+                                                    {userData ? (
+                                                        <h5 className="mb-0 d-inline-block"><a href="#" className="">{userData.fullname}</a></h5>
+                                                    ) : null}
+                                                    <p className="ms-1 mb-0 d-inline-block">Add New Post</p>
+                                                    {/* <p className="mb-0">{formatDate(post.createAt)}</p> */}
+                                                </div>
+                                                <div className="card-post-toolbar">
+                                                    <div className="dropdown">
+                                                        <span className="dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="button">
+                                                            <i className="ri-more-fill"></i>
+                                                        </span>
+                                                        <div className="dropdown-menu m-0 p-0">
+                                                            <a className="dropdown-item p-3" href="#">
+                                                                <div className="d-flex align-items-top">
+                                                                    <i className="ri-save-line h4"></i>
+                                                                    <div className="data ms-2">
+                                                                        <h6>Save Post</h6>
+                                                                        <p className="mb-0">Add this to your saved items</p>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        </a>
-                                                        <a className="dropdown-item p-3" href="#">
-                                                            <div className="d-flex align-items-top">
-                                                                <i className="ri-pencil-line h4"></i>
-                                                                <div className="data ms-2">
-                                                                    <h6>Edit Post</h6>
-                                                                    <p className="mb-0">Update your post and saved items</p>
+                                                            </a>
+                                                            <a className="dropdown-item p-3" href="#">
+                                                                <div className="d-flex align-items-top">
+                                                                    <i className="ri-pencil-line h4"></i>
+                                                                    <div className="data ms-2">
+                                                                        <h6>Edit Post</h6>
+                                                                        <p className="mb-0">Update your post and saved items</p>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        </a>
-                                                        <a className="dropdown-item p-3" href="#">
-                                                            <div className="d-flex align-items-top">
-                                                                <i className="ri-close-circle-line h4"></i>
-                                                                <div className="data ms-2">
-                                                                    <h6>Hide From Timeline</h6>
-                                                                    <p className="mb-0">See fewer posts like this.</p>
+                                                            </a>
+                                                            <a className="dropdown-item p-3" href="#">
+                                                                <div className="d-flex align-items-top">
+                                                                    <i className="ri-close-circle-line h4"></i>
+                                                                    <div className="data ms-2">
+                                                                        <h6>Hide From Timeline</h6>
+                                                                        <p className="mb-0">See fewer posts like this.</p>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        </a>
-                                                        <a className="dropdown-item p-3" onClick={() => deletePost(post.id)}>
-                                                            <div className="d-flex align-items-top">
-                                                                <i className="ri-delete-bin-7-line h4"></i>
-                                                                <div className="data ms-2">
-                                                                    <h6>Delete</h6>
-                                                                    <p className="mb-0">Remove thids Post on Timeline</p>
+                                                            </a>
+                                                            <a className="dropdown-item p-3" onClick={() => deletePost(post.id)}>
+                                                                <div className="d-flex align-items-top">
+                                                                    <i className="ri-delete-bin-7-line h4"></i>
+                                                                    <div className="data ms-2">
+                                                                        <h6>Delete</h6>
+                                                                        <p className="mb-0">Remove thids Post on Timeline</p>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        </a>
-                                                        <a className="dropdown-item p-3" href="#">
-                                                            <div className="d-flex align-items-top">
-                                                                <i className="ri-notification-line h4"></i>
-                                                                <div className="data ms-2">
-                                                                    <h6>Notifications</h6>
-                                                                    <p className="mb-0">Turn on notifications for this post</p>
+                                                            </a>
+                                                            <a className="dropdown-item p-3" href="#">
+                                                                <div className="d-flex align-items-top">
+                                                                    <i className="ri-notification-line h4"></i>
+                                                                    <div className="data ms-2">
+                                                                        <h6>Notifications</h6>
+                                                                        <p className="mb-0">Turn on notifications for this post</p>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        </a>
+                                                            </a>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="mt-3">
-                                <p>{post.content}</p>
-                            </div>
-                            <div className="user-post">
-                                <div className="d-grid grid-rows-2 grid-flow-col gap-3">
-                                    {post.postImages.map((image, index) => (
-                                        <div key={index} className="row-span-2 row-span-md-1">
-                                            <img src={`https://localhost:7174/${image.url}`} alt={`post-image-${index}`} className="img-fluid rounded w-100" />
-                                        </div>
-                                        // <div className="row-span-1">
-                                        //     <img src="" alt="post-image" className="img-fluid rounded w-100" />
-                                        // </div>
-                                    ))}
+                                <div className="mt-3">
+                                    <p>{post.content}</p>
                                 </div>
-                            </div>
-                            <div className="comment-area mt-3">
-                                <div className="d-flex justify-content-between align-items-center flex-wrap">
-                                    <div className="like-block position-relative d-flex align-items-center">
-                                        <div className="d-flex align-items-center">
-                                            <div className="like-data">
-                                                <div className="dropdown">
-                                                    <span className="dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="button">
-                                                        <img src="/src/assets/images/icon/01.png" className="img-fluid" alt="" />
-                                                    </span>
-                                                    <div className="dropdown-menu py-2">
-                                                        <a className="ms-2 me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Like"><img src="/src/assets/images/icon/01.png" className="img-fluid" alt="" /></a>
-                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Love"><img src="/src/assets/images/icon/02.png" className="img-fluid" alt="" /></a>
-                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Happy"><img src="/src/assets/images/icon/03.png" className="img-fluid" alt="" /></a>
-                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="HaHa"><img src="/src/assets/images/icon/04.png" className="img-fluid" alt="" /></a>
-                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Think"><img src="/src/assets/images/icon/05.png" className="img-fluid" alt="" /></a>
-                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Sade"><img src="/src/assets/images/icon/06.png" className="img-fluid" alt="" /></a>
-                                                        <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Lovely"><img src="/src/assets/images/icon/07.png" className="img-fluid" alt="" /></a>
+                                <div className="user-post">
+                                    <div className="d-grid grid-rows-2 grid-flow-col gap-3">
+                                        {post.postImages.map((image, index) => (
+                                            <div key={index} className="row-span-2 row-span-md-1">
+                                                <img src={`https://localhost:7174/${image.url}`} alt={`post-image-${index}`} className="img-fluid rounded w-100" />
+                                            </div>
+                                            // <div className="row-span-1">
+                                            //     <img src="" alt="post-image" className="img-fluid rounded w-100" />
+                                            // </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="comment-area mt-3">
+                                    <div className="d-flex justify-content-between align-items-center flex-wrap">
+                                        <div className="like-block position-relative d-flex align-items-center">
+                                            <div className="d-flex align-items-center">
+                                                <div className="like-data">
+                                                    <div className="dropdown">
+                                                        <span className="dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="button">
+                                                            <img src="/src/assets/images/icon/01.png" className="img-fluid" alt="" />
+                                                        </span>
+                                                        <div className="dropdown-menu py-2">
+                                                            <a className="ms-2 me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Like"><img src="/src/assets/images/icon/01.png" className="img-fluid" alt="" /></a>
+                                                            <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Love"><img src="/src/assets/images/icon/02.png" className="img-fluid" alt="" /></a>
+                                                            <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Happy"><img src="/src/assets/images/icon/03.png" className="img-fluid" alt="" /></a>
+                                                            <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="HaHa"><img src="/src/assets/images/icon/04.png" className="img-fluid" alt="" /></a>
+                                                            <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Think"><img src="/src/assets/images/icon/05.png" className="img-fluid" alt="" /></a>
+                                                            <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Sade"><img src="/src/assets/images/icon/06.png" className="img-fluid" alt="" /></a>
+                                                            <a className="me-2" href="#" data-bs-toggle="tooltip" data-bs-placement="top" title="Lovely"><img src="/src/assets/images/icon/07.png" className="img-fluid" alt="" /></a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="total-like-block ms-2 me-3">
+                                                    <div className="dropdown">
+                                                        <span className="dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="button">
+                                                            {post.likes.length} Likes
+                                                        </span>
+                                                        <div className="dropdown-menu">
+                                                            {post.likes
+                                                                .filter((like, index, self) =>
+                                                                    index === self.findIndex((l) => l.username_like === like.username_like)
+                                                                )
+                                                                .map((like, index) => (
+                                                                    <a className="dropdown-item" href="#" key={index}>{like.username_like}</a>
+                                                                ))}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="total-like-block ms-2 me-3">
+                                            <div className="total-comment-block">
                                                 <div className="dropdown">
                                                     <span className="dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="button">
-                                                        {post.likes.length} Likes
+                                                        {post.comments.length} Comment
                                                     </span>
                                                     <div className="dropdown-menu">
-                                                        {post.likes
-                                                            .filter((like, index, self) =>
-                                                                index === self.findIndex((l) => l.username_like === like.username_like)
+                                                        {post.comments
+                                                            .filter((comment, index, self) =>
+                                                                index === self.findIndex((cmt) => cmt.username_comment === comment.username_comment)
                                                             )
-                                                            .map((like, index) => (
-                                                                <a className="dropdown-item" href="#" key={index}>{like.username_like}</a>
+                                                            .map((comment, index) => (
+                                                                <a className="dropdown-item" href="#" key={index}>{comment.username_comment}</a>
                                                             ))}
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="total-comment-block">
-                                            <div className="dropdown">
-                                                <span className="dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="button">
-                                                    {post.comments.length} Comment
-                                                </span>
-                                                <div className="dropdown-menu">
-                                                    {post.comments
-                                                        .filter((comment, index, self) =>
-                                                            index === self.findIndex((cmt) => cmt.username_comment === comment.username_comment)
-                                                        )
-                                                        .map((comment, index) => (
-                                                            <a className="dropdown-item" href="#" key={index}>{comment.username_comment}</a>
-                                                        ))}
-                                                </div>
-                                            </div>
+                                        <div className="share-block d-flex align-items-center feather-icon mt-2 mt-md-0">
+                                            <a href="#" data-bs-toggle="offcanvas" data-bs-target="#share-btn" aria-controls="share-btn"><i className="ri-share-line"></i>
+                                                <span className="ms-1">{post.share} Share</span></a>
                                         </div>
                                     </div>
-                                    <div className="share-block d-flex align-items-center feather-icon mt-2 mt-md-0">
-                                        <a href="#" data-bs-toggle="offcanvas" data-bs-target="#share-btn" aria-controls="share-btn"><i className="ri-share-line"></i>
-                                            <span className="ms-1">{post.share} Share</span></a>
-                                    </div>
-                                </div>
-                                <hr />
-                                <ul className="post-comments p-0 m-0">
-                                    {post.comments.map((comment) => (
-                                        <li className="mb-2">
-                                            <div className="d-flex">
-                                                <div className="user-img">
-                                                    <img src="/src/assets/images/user/02.jpg" alt="userimg" className="avatar-35 rounded-circle img-fluid" />
-                                                </div>
-                                                <div className="comment-data-block ms-3">
-                                                    <h6>{comment.username_comment}</h6>
-                                                    <p className="mb-0">{comment.content}</p>
-                                                    <div className="d-flex flex-wrap align-items-center comment-activity">
-                                                        <a href="javascript:void();">like</a>
-                                                        <a href="javascript:void();">reply</a>
-                                                        <a href="javascript:void();">translate</a>
-                                                        <span>{formatDate(comment.createdAt)}</span>
+                                    <hr />
+                                    <ul className="post-comments p-0 m-0">
+                                        {post.comments.map((comment) => (
+                                            <li className="mb-2">
+                                                <div className="d-flex">
+                                                    <div className="user-img">
+                                                        <img src="/src/assets/images/user/02.jpg" alt="userimg" className="avatar-35 rounded-circle img-fluid" />
+                                                    </div>
+                                                    <div className="comment-data-block ms-3">
+                                                        <h6>{comment.username_comment}</h6>
+                                                        <p className="mb-0">{comment.content}</p>
+                                                        <div className="d-flex flex-wrap align-items-center comment-activity">
+                                                            <a href="javascript:void();">like</a>
+                                                            <a href="javascript:void();">reply</a>
+                                                            <a href="javascript:void();">translate</a>
+                                                            <span>{formatDate(comment.createdAt)}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                                <form className="comment-text d-flex align-items-center mt-3" onSubmit={(e) => handleSubmitComment(e, post.id)}>
-                                    <input
-                                        type="text"
-                                        className="form-control rounded"
-                                        placeholder="Enter Your Comment"
-                                        value={content}
-                                        onChange={(e) => setContent(e.target.value)}
-                                    />
-                                    <div className="comment-attagement d-flex">
-                                        <button style={{ border: "none" }} type="submit" aria-label="Send">
-                                            <i class="fa fa-paper-plane" aria-hidden="true"></i>
-                                        </button>
-                                        <a href="javascript:void();"><i className="ri-user-smile-line me-3"></i></a>
-                                        <label><input type="file" onChange={handleChangeImage} hidden multiple /><i className="ri-camera-line me-3"></i></label>
-                                    </div>
-                                </form>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    <form className="comment-text d-flex align-items-center mt-3" onSubmit={(e) => handleSubmitComment(e, post.id)}>
+                                        <input
+                                            type="text"
+                                            className="form-control rounded"
+                                            placeholder="Enter Your Comment"
+                                            value={content}
+                                            onChange={(e) => setContent(e.target.value)}
+                                        />
+                                        <div className="comment-attagement d-flex">
+                                            <button style={{ border: "none" }} type="submit" aria-label="Send">
+                                                <i className="fa fa-paper-plane" aria-hidden="true"></i>
+                                            </button>
+                                            <a href="javascript:void();"><i className="ri-user-smile-line me-3"></i></a>
+                                            <label><input type="file" onChange={handleChangeImage} hidden multiple /><i className="ri-camera-line me-3"></i></label>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            ))) : (<p style={{textAlign: "center"}}>No post</p>)}
+                ))) : (<p style={{ textAlign: "center" }}>No post</p>)}
         </div>
     );
 }
@@ -1039,7 +1037,7 @@ const Friends = () => {
                     <div className="friend-list-tab mt-2">
                         <ul className="nav nav-pills d-flex align-items-center justify-content-left friend-list-items p-0 mb-2">
                             <li>
-                                <a className="nav-link active" data-bs-toggle="pill" href="#pill-all-friends" data-bs-target="#all-feinds">All Friends</a>
+                                <a className="nav-link active" data-bs-toggle="pill" href="#pill-all-friends" data-bs-target="#all-friends">All Friends</a>
                             </li>
                             <li>
                                 <a className="nav-link" data-bs-toggle="pill" href="#pill-recently-add" data-bs-target="#recently-add">Recently Added</a>
@@ -1076,6 +1074,41 @@ const Friends = () => {
                                                                 <i className="ri-check-line me-1 text-white"></i> Friend
                                                             </span>
                                                             <div className="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton01">
+                                                                <a className="dropdown-item" href="#">Get Notification</a>
+                                                                <a className="dropdown-item" href="#">Close Friend</a>
+                                                                <a className="dropdown-item" href="#">Unfollow</a>
+                                                                <a className="dropdown-item" href="#">Unfriend</a>
+                                                                <a className="dropdown-item" href="#">Block</a>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="tab-pane fade" id="recently-add" role="tabpanel">
+                                <div className="card-body p-0">
+                                    <div className="row">
+                                        <div className="col-md-6 col-lg-6 mb-3">
+                                            <div className="iq-friendlist-block">
+                                                <div className="d-flex align-items-center justify-content-between">
+                                                    <div className="d-flex align-items-center">
+                                                        <a href="#">
+                                                            <img src="/src/assets/images/user/07.jpg" alt="profile-img" className="img-fluid" />
+                                                        </a>
+                                                        <div className="friend-info ms-3">
+                                                            <h5>Otto Matic</h5>
+                                                            <p className="mb-0">4  friends</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="card-header-toolbar d-flex align-items-center">
+                                                        <div className="dropdown">
+                                                            <span className="dropdown-toggle btn btn-secondary me-2" id="dropdownMenuButton31" data-bs-toggle="dropdown" aria-expanded="true" role="button">
+                                                                <i className="ri-check-line me-1 text-white"></i> Friend
+                                                            </span>
+                                                            <div className="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton31">
                                                                 <a className="dropdown-item" href="#">Get Notification</a>
                                                                 <a className="dropdown-item" href="#">Close Friend</a>
                                                                 <a className="dropdown-item" href="#">Unfollow</a>

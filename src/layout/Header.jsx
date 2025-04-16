@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { getUserById, logout, findUser } from "../services/auth";
+import { getUserById, logout, findUser, decodeToken } from "../services/auth";
 import { useNavigate } from "react-router-dom";
-import { getFriendRequestsBySenderID, rejectFriendRequest, confirmRequest } from "../services/friendRequest";
+import { GetFriendRequestByReceiverID,getFriendRequestByUserID, rejectFriendRequest, confirmRequest } from "../services/friendRequest";
 import { addFriend } from "../services/friend";
-import { jwtDecode } from "jwt-decode";
 
 export default function Header() {
   const [user, setUser] = useState(null);
@@ -22,9 +21,8 @@ export default function Header() {
           console.error("No token found in localStorage");
           return;
         }
-        const tokenData = jwtDecode(token);
-        const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
-        const userData = await getUserById(userIdBytoken);
+        const tokenData = await decodeToken(token);
+        const userData = await getUserById(tokenData.data.payload.userID);
         setUser(userData.data);
       } catch (error) {
         console.error("Failed to fetch user:", error);
@@ -43,28 +41,42 @@ export default function Header() {
   //search user by email, phonenumber, username
   const handleSearchUserBystringData = async (e) => {
     e.preventDefault();
+  
     if (!stringData) {
-      alert("Please fill username, phonenumber, email.");
+      alert("Please fill in username, phone number, or email.");
       return;
     }
+  
     try {
-      const listfriendRequest = await getFriendRequestsBySenderID(user.id);
-      const response = await findUser(stringData);
-      for (let i = 0; i < listfriendRequest.data.length; i++) {
-        for (let j = 0; j < response.data.length; j++) {
-          if (listfriendRequest.data[i].receiverID == response.data[j].id) {
-            response.data[j].checkFriend = 1;
-          } else {
-            response.data[j].checkFriend = 2;
-          }
-        }
-      }
-      navigate("/search_user", { state: { searchResult: response.data } });
+      const [listfriendRequest, response] = await Promise.all([
+        getFriendRequestByUserID(user.id),
+        findUser(stringData),
+      ]);
+  
+      const requests = listfriendRequest.data;
+      const users = response.data;
+  
+      // Loop through found users
+      const updatedUsers = users.map((searchUser) => {
+        const matchedRequest = requests.find((req) => 
+          (req.senderID === user.id && req.receiverID === searchUser.id) ||
+          (req.receiverID === user.id && req.senderID === searchUser.id)
+        );
+  
+        return {
+          ...searchUser,
+          checkFriend: matchedRequest ? matchedRequest.status : 0,
+        };
+      });
+  
+      console.log("Search result:", updatedUsers);
+      navigate("/search_user", { state: { searchResult: updatedUsers } });
+  
     } catch (error) {
       console.error("Failed to fetch user:", error);
     }
   };
-
+  
   return (
     <div className="iq-top-navbar">
       <div className="iq-navbar-custom">
@@ -340,15 +352,15 @@ const FriendRequest = ({ user }) => {
     const fetchListRequest = async () => {
       if (!user?.id) return; // Prevent API call if user ID is undefined
       try {
-        const response = await getFriendRequestsBySenderID(user.id);
+        const response = await GetFriendRequestByReceiverID(user.id);
         const fetchUser = await Promise.all(
           response.data.map(async (data) => {
             try {
               // Fetch user information
-              const fetchUsername = await getUserById(data.receiverID);
+              const fetchUsername = await getUserById(data.senderID);
               return { ...data, username: fetchUsername.data.fullname };
             } catch (userFetchError) {
-              console.error(`Failed to fetch user details for ID ${data.receiverID}:`, userFetchError);
+              console.error(`Failed to fetch user details for ID ${data.senderID}:`, userFetchError);
               return { ...data, username: "Unknown User" }; // Fallback value
             }
           })
@@ -392,7 +404,6 @@ const FriendRequest = ({ user }) => {
           <div className="header-title">
             <h5 className="mb-0 text-white">Friend Request</h5>
           </div>
-          <small className="badge  bg-light text-dark ">4</small>
         </div>
         <div className="card-body p-0">
           {listData.map((data) => (
