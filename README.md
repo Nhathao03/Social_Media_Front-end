@@ -22,7 +22,7 @@ Follow these steps to set up and run the project locally:
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Nhathao03/Social_Media_Front-end.git
    cd social-media-client
    ```
 
@@ -65,3 +65,5 @@ yarn preview
 ```
 
 ### Project make by Ha Nhat Hao   
+Name: Hà Nhật Hào
+Email: nhathao212003@gmail.com
