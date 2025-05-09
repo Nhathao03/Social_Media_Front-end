@@ -64,4 +64,4 @@ npm run preview
 yarn preview
 ```
 
-### Project make by Ha Nhat Hao
+### Project make by Ha Nhat Hao   
