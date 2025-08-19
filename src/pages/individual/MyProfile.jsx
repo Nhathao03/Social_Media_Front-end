@@ -3,34 +3,34 @@ import LeftSidebar from "../../layout/LeftSidebar";
 import RightSidebar from "../../layout/RightSidebar";
 import Footer from "../../layout/Footer";
 import { useEffect, useState } from "react";
-import { getUserById ,decodeToken } from "../../services/auth";
+import { getUserById, decodeToken, UpdateBackgroundUser } from "../../services/auth";
 import { deletePostById, getPostByUserID, GetAllPostNearestCreatedAt } from "../../services/post";
 import { AddLike } from "../../services/likes";
 import { createComment } from "../../services/comment";
-import { uploadfile, UploadFileComment } from "../../services/uploadfile";
+import { uploadfile, UploadFileComment, UploadBackgroundUser } from "../../services/uploadfile";
 import { getFriendOfEachUser, getFriendRecentlyAdded, GetFriendBaseOnHomeTown } from "../../services/friend";
 import { getPostImagesByUserID } from "../../services/postImage";
 
 export default function MyProfile() {
     const [user, setUser] = useState(null);
     // get Username base on token in local storage
-      useEffect(() => {
+    useEffect(() => {
         const fetchUser = async () => {
-          try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-              console.error("No token found in localStorage");
-              return;
+            try {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    console.error("No token found in localStorage");
+                    return;
+                }
+                const tokenData = await decodeToken(token);
+                const userData = await getUserById(tokenData.data.payload.userID);
+                setUser(userData.data);
+            } catch (error) {
+                console.error("Failed to fetch user:", error);
             }
-            const tokenData = await decodeToken(token);
-            const userData = await getUserById(tokenData.data.payload.userID);
-            setUser(userData.data);
-          } catch (error) {
-            console.error("Failed to fetch user:", error);
-          }
         };
         fetchUser();
-      }, []);
+    }, []);
 
     return (
         <div className="wrapper">
@@ -47,7 +47,7 @@ export default function MyProfile() {
                         <div className="col-sm-12">
                             <div className="tab-content">
                                 <TimeLine user={user} />
-                                <About />
+                                <About user={user} />
                                 <Friends user={user} />
                                 <Photos user={user} />
                             </div>
@@ -66,6 +66,8 @@ const ProfilePage = ({ user }) => {
     const [birth, setBirth] = useState("");
     const [gender, setGender] = useState("");
     const [previewImage, setPreviewImage] = useState(null);
+    const [background, setBackground] = useState(null);
+
 
     useEffect(() => {
         if (user) {
@@ -74,6 +76,7 @@ const ProfilePage = ({ user }) => {
             setBirth(user.birth ? formatDate(user.birth) : "");
             setGender(user.gender || "");
             setPreviewImage(user.avatar ? `https://localhost:7174/${user.avatar}` : null);
+            setBackground(user.backgroundProfile ? `https://localhost:7174/${user.backgroundProfile}` : null);
         }
     }, [user]);
 
@@ -82,6 +85,25 @@ const ProfilePage = ({ user }) => {
         return new Date(dateString).toISOString().split("T")[0];
     };
 
+    const handleChangeImage = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Create preview URL
+            const previewUrl = URL.createObjectURL(file);
+            setBackground(previewUrl);
+
+            try {
+                const response = await UploadBackgroundUser(file);
+                await UpdateBackgroundUser(userID, response.data);
+                if (response.data) {
+                    setBackground(`https://localhost:7174/${response.data}`);
+                }
+            } catch (error) {
+                console.error("Failed to upload image:", error);
+                setMessage("Failed to upload image. Please try again.");
+            }
+        }
+    };
 
     useEffect(() => {
         const fetchPost = async () => {
@@ -100,16 +122,29 @@ const ProfilePage = ({ user }) => {
         <div className="card">
             <div className="card-body profile-page p-0">
                 {user ? (
-
                     <div className="profile-header">
-
-                        <div className="position-relative">
-                            <img src="src/assets/images/page-img/profile-bg1.jpg" alt="profile-bg" className="rounded img-fluid" />
-                            <ul className="header-nav list-inline d-flex flex-wrap justify-end p-0 m-0">
-                                <li><a href="#"><i className="ri-pencil-line"></i></a></li>
-                                <li><a href="#"><i className="ri-settings-4-line"></i></a></li>
+                        <div class="position-relative">
+                            <img src={background} alt="Profile Background" class="rounded img-fluid" style={{ height: '350px', width: '100%' }} />
+                            <ul class="header-nav list-inline d-flex flex-wrap justify-end p-0 m-0 position-absolute top-0 end-0 m-2">
+                                <li>
+                                    <label class="cursor-pointer m-0">
+                                        <i class="ri-pencil-line"></i>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            class="file-upload d-none"
+                                            onChange={handleChangeImage}
+                                        />
+                                    </label>
+                                </li>
+                                <li>
+                                    <a href="#" class="text-decoration-none">
+                                        <i class="ri-settings-4-line"></i>
+                                    </a>
+                                </li>
                             </ul>
                         </div>
+
                         <div className="user-detail text-center mb-3">
                             <div className="profile-img">
                                 <img src={previewImage} alt="profile-img" className="avatar-130 img-fluid" style={{ height: "130px" }} />
@@ -513,16 +548,10 @@ const TimeLineRightContent = ({ user }) => {
     //Check image if have change
     const handleChangeImage = async (e) => {
         if (e.target.files && e.target.files.length > 0) {
-            const files = Array.from(e.target.files);
-            const uploadedUrls = await Promise.all(files.map(async (file) => {
-                return await UploadFileComment(file);
-            }));
-            const ListUrl = uploadedUrls.map((url) => {
-                return {
-                    Url: url.data
-                }
-            });
-            setImageComment(ListUrl);
+            const file = e.target.files[0]; // Get the first file only
+            const uploadedUrl = await UploadFileComment(file); // Upload the single file
+            const ListUrl = [{ Url: uploadedUrl.data }]; // Create a single-item array
+            setImageComment(ListUrl); // Update state with the single URL
         }
     };
 
@@ -534,7 +563,8 @@ const TimeLineRightContent = ({ user }) => {
             return;
         }
         try {
-            await createComment(user, postID, content, ImageCmt, sticker);
+            const ImageComment = ImageCmt && ImageCmt.length > 0 ? ImageCmt[0].Url : null;
+            await createComment(user, postID, content, ImageComment, sticker);
             setMessage("Comment created successfully!");
             window.location.reload();
         } catch (error) {
@@ -650,7 +680,7 @@ const TimeLineRightContent = ({ user }) => {
                                 <div className="d-flex justify-content-between align-items-center flex-wrap">
                                     <div className="like-block position-relative d-flex align-items-center">
                                         <div className="d-flex align-items-center">
-                                            <div className="like-data">
+                                            <div className="like-data" onClick={() => handleAddLike(userID, post.id)}>
                                                 <div className="dropdown">
                                                     <span className="dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" role="button">
                                                         <img src="./src/assets/images/icon/01.png" className="img-fluid" alt="" />
@@ -708,14 +738,28 @@ const TimeLineRightContent = ({ user }) => {
                                 <hr />
                                 <ul className="post-comments p-0 m-0">
                                     {post.comments.map((comment) => (
-                                        <li className="mb-2">
+                                        <li className="mb-2" key={comment.id}>
                                             <div className="d-flex">
                                                 <div className="user-img">
-                                                    <img src={`https://localhost:7174/${comment.avatar_comment}`} alt="userimg" className="avatar-35 rounded-circle img-fluid" />
+                                                    <img
+                                                        src={`https://localhost:7174/${comment.avatar_comment}`}
+                                                        alt="userimg"
+                                                        className="avatar-35 rounded-circle img-fluid"
+                                                    />
                                                 </div>
                                                 <div className="comment-data-block ms-3">
                                                     <h6>{comment.username_comment}</h6>
                                                     <p className="mb-0">{comment.content}</p>
+                                                    {comment.image && (
+                                                        <div className="comment-image mt-2">
+                                                            <img
+                                                                src={`https://localhost:7174/${comment.image}`}
+                                                                alt="comment image"
+                                                                className="img-fluid rounded"
+                                                                style={{ maxWidth: '100%', maxHeight: '200px' }}
+                                                            />
+                                                        </div>
+                                                    )}
                                                     <div className="d-flex flex-wrap align-items-center comment-activity">
                                                         <a href="javascript:void();">like</a>
                                                         <a href="javascript:void();">reply</a>
@@ -792,20 +836,12 @@ const AboutLeftContent = () => {
     );
 }
 
-const AboutRightContent = ({ user }) => {
-    const [fullname, setFullname] = useState("");
-    const [userID, setUserID] = useState("");
+const AboutRightContent = ({user}) => {
     const [birth, setBirth] = useState("");
-    const [gender, setGender] = useState("");
-    const [previewImage, setPreviewImage] = useState(null);
-
+    
     useEffect(() => {
         if (user) {
-            setFullname(user.fullname || "");
-            setUserID(user.id || "");
             setBirth(user.birth ? formatDate(user.birth) : "");
-            setGender(user.gender || "");
-            setPreviewImage(user.avatar ? `https://localhost:7174/${user.avatar}` : null);
         }
     }, [user]);
 
@@ -817,80 +853,82 @@ const AboutRightContent = ({ user }) => {
     return (
         <div className="col-md-9 ps-4">
             <div className="tab-content" >
-                <div className="tab-pane fade active show" id="v-pills-basicinfo-tab" role="tabpanel" aria-labelledby="v-pills-basicinfo-tab">
-                    <h4>Contact Information</h4>
+                {user ? (
+                    <div className="tab-pane fade active show" id="v-pills-basicinfo-tab" role="tabpanel" aria-labelledby="v-pills-basicinfo-tab">
+                        <h4>Contact Information</h4>
 
-                    <div className="row">
-                        <div className="col-3">
-                            <h6>Email</h6>
+                        <div className="row">
+                            <div className="col-3">
+                                <h6>Email</h6>
+                            </div>
+                            <div className="col-9">
+                                <p className="mb-0">{user.email}</p>
+                            </div>
+                            <div className="col-3">
+                                <h6>Mobile</h6>
+                            </div>
+                            <div className="col-9">
+                                <p className="mb-0">{user.phoneNumber}</p>
+                            </div>
+                            <div className="col-3">
+                                <h6>Address</h6>
+                            </div>
+                            <div className="col-9">
+                                <p className="mb-0">United States of America</p>
+                            </div>
                         </div>
-                        <div className="col-9">
-                            <p className="mb-0">Bnijohn@gmail.com</p>
+                        <h4 className="mt-3">Websites and Social Links</h4>
+
+                        <div className="row">
+                            <div className="col-3">
+                                <h6>Website</h6>
+                            </div>
+                            <div className="col-9">
+                                <p className="mb-0">www.bootstrap.com</p>
+                            </div>
+                            <div className="col-3">
+                                <h6>Social Link</h6>
+                            </div>
+                            <div className="col-9">
+                                <p className="mb-0">www.bootstrap.com</p>
+                            </div>
                         </div>
-                        <div className="col-3">
-                            <h6>Mobile</h6>
-                        </div>
-                        <div className="col-9">
-                            <p className="mb-0">(001) 4544 565 456</p>
-                        </div>
-                        <div className="col-3">
-                            <h6>Address</h6>
-                        </div>
-                        <div className="col-9">
-                            <p className="mb-0">United States of America</p>
+                        <h4 className="mt-3">Basic Information</h4>
+
+                        <div className="row">
+                            <div className="col-3">
+                                <h6>Birth Date</h6>
+                            </div>
+                            <div className="col-9">
+                                <p className="mb-0">24 January</p>
+                            </div>
+                            <div className="col-3">
+                                <h6>Birth Year</h6>
+                            </div>
+                            <div className="col-9">
+                                <p className="mb-0">1994</p>
+                            </div>
+                            <div className="col-3">
+                                <h6>Gender</h6>
+                            </div>
+                            <div className="col-9">
+                                <p className="mb-0">Female</p>
+                            </div>
+                            <div className="col-3">
+                                <h6>interested in</h6>
+                            </div>
+                            <div className="col-9">
+                                <p className="mb-0">Designing</p>
+                            </div>
+                            <div className="col-3">
+                                <h6>language</h6>
+                            </div>
+                            <div className="col-9">
+                                <p className="mb-0">English, French</p>
+                            </div>
                         </div>
                     </div>
-                    <h4 className="mt-3">Websites and Social Links</h4>
-
-                    <div className="row">
-                        <div className="col-3">
-                            <h6>Website</h6>
-                        </div>
-                        <div className="col-9">
-                            <p className="mb-0">www.bootstrap.com</p>
-                        </div>
-                        <div className="col-3">
-                            <h6>Social Link</h6>
-                        </div>
-                        <div className="col-9">
-                            <p className="mb-0">www.bootstrap.com</p>
-                        </div>
-                    </div>
-                    <h4 className="mt-3">Basic Information</h4>
-
-                    <div className="row">
-                        <div className="col-3">
-                            <h6>Birth Date</h6>
-                        </div>
-                        <div className="col-9">
-                            <p className="mb-0">24 January</p>
-                        </div>
-                        <div className="col-3">
-                            <h6>Birth Year</h6>
-                        </div>
-                        <div className="col-9">
-                            <p className="mb-0">1994</p>
-                        </div>
-                        <div className="col-3">
-                            <h6>Gender</h6>
-                        </div>
-                        <div className="col-9">
-                            <p className="mb-0">Female</p>
-                        </div>
-                        <div className="col-3">
-                            <h6>interested in</h6>
-                        </div>
-                        <div className="col-9">
-                            <p className="mb-0">Designing</p>
-                        </div>
-                        <div className="col-3">
-                            <h6>language</h6>
-                        </div>
-                        <div className="col-9">
-                            <p className="mb-0">English, French</p>
-                        </div>
-                    </div>
-                </div>
+                ) : null}
                 <div className="tab-pane fade" id="v-pills-family" role="tabpanel">
                     <h4 className="mb-3">Relationship</h4>
                     <ul className="suggestions-lists m-0 p-0">
@@ -1090,7 +1128,7 @@ const Friends = ({ user }) => {
                 const response = await getFriendOfEachUser(user.id);
                 const friendsWithInfo = await Promise.all(
                     response.data.map(async (friend) => {
-                        const otherUserId = friend.userID == user.id ? friend.friendID : friend.userID;
+                        const otherUserId = friend;
                         const userInfo = await getUserById(otherUserId);
                         return { ...friend, avatar: userInfo.data.avatar, fullname: userInfo.data.fullname, id_profile: otherUserId };
                     })
@@ -1354,15 +1392,15 @@ const Friends = ({ user }) => {
     );
 }
 
-const Photos = ({user}) => {
+const Photos = ({ user }) => {
     const [Images, setImages] = useState([]);
-    useEffect (() => {
+    useEffect(() => {
         const fetchImages = async () => {
-            if(!user) return;
-            try{
+            if (!user) return;
+            try {
                 const response = await getPostImagesByUserID(user.id);
                 setImages(response.data);
-            }catch(error){
+            } catch (error) {
                 console.error("Failed to fetch posts:", error);
             }
         }

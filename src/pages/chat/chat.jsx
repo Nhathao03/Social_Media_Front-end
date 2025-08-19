@@ -8,7 +8,7 @@ import { getFriendOfEachUser } from "../../services/friend"
 import { jwtDecode } from "jwt-decode";
 import { sendMessage, getMessagesByUsers } from "../../services/message";
 
-export default function MyProfile() {
+export default function Chat() {
     const [user, setUser] = useState(null);
     // get Username base on token in local storage
     useEffect(() => {
@@ -73,12 +73,13 @@ const ChatComponent = ({ user }) => {
             try {
                 const response = await getFriendOfEachUser(userID);
                 const fetchUsername = await Promise.all(
-                    response.data.map(async (username) => {
-                        const fetchUsernameData = await getUserById(username.friendID);
-                        return { ...username, name: fetchUsernameData.data.fullname, avatar: fetchUsernameData.data.avatar };
+                    response.data.map(async (userid) => {
+                        const fetchUsernameData = await getUserById(userid);
+                        return { ID: fetchUsernameData.data.id, name: fetchUsernameData.data.fullname, avatar: fetchUsernameData.data.avatar };
                     })
                 );
                 setListFriends(fetchUsername);
+                console.log("Fetched friends:", fetchUsername);
             } catch (err) {
                 console.error("Failed to fetch friends:", err);
             }
@@ -167,10 +168,10 @@ const ChatComponent = ({ user }) => {
                                     <ul className="iq-chat-ui nav flex-column nav-pills">
                                         {listFriends ? (
                                             listFriends.map((friend) => (
-                                                <li key={friend.friendID}>
+                                                <li key={friend.ID}>
                                                     <a
                                                         href="#"
-                                                        className={`${selectedUser?.friendID === friend.friendID ? 'active' : ''}`}
+                                                        className={`${selectedUser?.ID === friend.ID ? 'active' : ''}`}
                                                         onClick={(e) => {
                                                             e.preventDefault();
                                                             setSelectedUser(friend);

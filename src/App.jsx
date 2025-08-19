@@ -9,6 +9,8 @@ import Profile from "./pages/Profile";
 import FriendRequest from "./pages/FriendRequest";
 import EditProfile from "./pages/individual/EditProfile";
 import Chat from "./pages/chat/chat";
+import ForgotPassword from "./pages/auth/Forgotpassword";
+import ResetPassword from "./pages/auth/ResetPassword";
 import './assets/css/libs.min.css';
 import './assets/css/socialv.css';
 import './assets/vendor/@fortawesome/fontawesome-free/css/all.min.css';
@@ -31,6 +33,8 @@ function Account() {
                 <Route path="/friendrequest" element={<FriendRequest/>}/>
                 <Route path="/edit_profile" element={<EditProfile/>}/>
                 <Route path="/chat" element={<Chat/>}/>
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
             </Routes>
         </Router>
     );
