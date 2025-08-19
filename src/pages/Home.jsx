@@ -3,7 +3,7 @@ import LeftSidebar from "../layout/LeftSidebar";
 import RightSidebar from "../layout/RightSidebar";
 import Footer from "../layout/Footer";
 import { createpost, GetAllPostNearestCreatedAt, deletePostById } from "../services/post";
-import { getUserById , decodeToken} from "../services/auth";
+import { getUserById, decodeToken } from "../services/auth";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { uploadfile, UploadFileComment } from "../services/uploadfile";
@@ -12,6 +12,26 @@ import { AddLike } from "../services/likes";
 import { jwtDecode } from "jwt-decode";
 
 export default function Home() {
+    const [userData, setUserData] = useState(null);
+    // get Username base on token in local storage
+      useEffect(() => {
+        const fetchUser = async () => {
+          try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+              console.error("No token found in localStorage");
+              return;
+            }
+            const tokenData = await decodeToken(token);
+            const userData = await getUserById(tokenData.data.payload.userID);
+            setUserData(userData.data);
+          } catch (error) {
+            console.error("Failed to fetch user:", error);
+          }
+        };
+        fetchUser();
+      }, []);
+
     return (
         <div className="wrapper">
             <Header />
@@ -21,8 +41,8 @@ export default function Home() {
                 <div className="container">
                     <div className="row">
                         <div className="col-lg-8 row m-0 p-0">
-                            <CreatePost />
-                            <GetAllPost />
+                            <CreatePost userData = {userData} />
+                            <GetAllPost userData = {userData} />
                         </div>
                         <div className="col-lg-4">
                             <Stories />
@@ -37,10 +57,10 @@ export default function Home() {
     )
 }
 
-const CreatePost = () => {
+const CreatePost = ({userData}) => {
     const [content, setContent] = useState("");
-    const [userID, setUserID] = useState(null);
     const [PostImages, setPostImage] = useState([null]);
+    const [userID , setUserID] = useState(null);
     const [message, setMessage] = useState("");
     const Views = useState();
     const Share = useState();
@@ -49,32 +69,14 @@ const CreatePost = () => {
     const [Image, setImage] = useState(null);
     const navigate = useNavigate();
 
-    //get token user from local storage
-      useEffect(() => {
-        const fetchUser = async () => {
-          try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-              console.error("No token found in localStorage");
-              return;
-            }
-            const tokenData = await decodeToken(token);
-            const userData = await getUserById(tokenData.data.payload.userID);
-            setUserID(userData.data);
-          } catch (error) {
-            console.error("Failed to fetch user:", error);
-          }
-        };
-        fetchUser();
-      }, []);
-
 
     useEffect(() => {
-        if (userID) {
-            setFullname(userID.fullname || "");
-            setImage(userID.avatar ? `https://localhost:7174/${userID.avatar}` : null);
+        if (userData) {
+            setFullname(userData.fullname || "");
+            setImage(userData.avatar ? `https://localhost:7174/${userData.avatar}` : null);
+            setUserID(userData.id || null);
         }
-    }, [userID]);
+    }, [userData]);
 
 
     //Check image if have change
@@ -184,7 +186,7 @@ const CreatePost = () => {
     );
 };
 
-const GetAllPost = () => {
+const GetAllPost = ({userData}) => {
     const [posts, setPosts] = useState([]);
     const [userID, setUserID] = useState(null);
     const [error, setError] = useState("");
@@ -193,6 +195,12 @@ const GetAllPost = () => {
     const sticker = useState("");
     const [ImageUrl, setImageComment] = useState(null);
 
+    useEffect(() => {
+        if (userData) {
+            setUserID(userData.id || null);
+        }
+    }, [userData]);
+    
     // get all post in database (not follow user)
     useEffect(() => {
         const fetchPost = async () => {
@@ -226,26 +234,9 @@ const GetAllPost = () => {
             }
         };
         fetchPost();
-
-        // get username based on token in local storage
-        const fetchUser = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) {
-                    console.error("No token found in localStorage");
-                    return;
-                }
-                const tokenData = jwtDecode(token);
-                const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
-                const userData = await getUserById(userIdBytoken);
-                setUserID(userData.data);
-            } catch (error) {
-                console.error("Failed to fetch user:", error);
-            }
-        };
-        fetchUser();
-
     }, []);
+
+
     //delete post
     const deletePost = async (id) => {
         try {
@@ -277,19 +268,14 @@ const GetAllPost = () => {
 
         fetchUser();
     }, []);
-    //Check image if have change
+
+     //Check image if have change
     const handleChangeImage = async (e) => {
         if (e.target.files && e.target.files.length > 0) {
-            const files = Array.from(e.target.files);
-            const uploadedUrls = await Promise.all(files.map(async (file) => {
-                return await UploadFileComment(file);
-            }));
-            const ListUrl = uploadedUrls.map((url) => {
-                return {
-                    Url: url.data
-                }
-            });
-            setImageComment(ListUrl);
+            const file = e.target.files[0]; // Get the first file only
+            const uploadedUrl = await UploadFileComment(file); // Upload the single file
+            const ListUrl = [{ Url: uploadedUrl.data }]; // Create a single-item array
+            setImageComment(ListUrl); // Update state with the single URL
         }
     };
 
@@ -301,7 +287,8 @@ const GetAllPost = () => {
             return;
         }
         try {
-            await createComment(userID, postID, content, ImageUrl, sticker);
+            const ImageComment = ImageUrl && ImageUrl.length > 0 ? ImageUrl[0].Url : null;
+            await createComment(userID, postID, content, ImageComment, sticker);
             setMessage("Comment created successfully!");
             window.location.reload();
         } catch (error) {
@@ -479,16 +466,30 @@ const GetAllPost = () => {
                                     </div>
                                 </div>
                                 <hr />
-                                <ul className="post-comments list-inline p-0 m-0">
+                                <ul className="post-comments p-0 m-0">
                                     {post.comments.map((comment) => (
-                                        <li className="mb-2">
+                                        <li className="mb-2" key={comment.id}>
                                             <div className="d-flex">
                                                 <div className="user-img">
-                                                    <img src={`https://localhost:7174/${comment.avatar_comment}`} alt="userimg" className="avatar-35 rounded-circle img-fluid" />
+                                                    <img
+                                                        src={`https://localhost:7174/${comment.avatar_comment}`}
+                                                        alt="userimg"
+                                                        className="avatar-35 rounded-circle img-fluid"
+                                                    />
                                                 </div>
                                                 <div className="comment-data-block ms-3">
                                                     <h6>{comment.username_comment}</h6>
                                                     <p className="mb-0">{comment.content}</p>
+                                                    {comment.image&& (
+                                                        <div className="comment-image mt-2">
+                                                            <img
+                                                                src={`https://localhost:7174/${comment.image}`}
+                                                                alt="comment image"
+                                                                className="img-fluid rounded"
+                                                                style={{ maxWidth: '100%', maxHeight: '200px' }}
+                                                            />
+                                                        </div>
+                                                    )}
                                                     <div className="d-flex flex-wrap align-items-center comment-activity">
                                                         <a href="javascript:void();">like</a>
                                                         <a href="javascript:void();">reply</a>

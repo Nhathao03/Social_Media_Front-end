@@ -4,7 +4,7 @@ const API_URL = "https://localhost:7174/api/post";
 
 export const createpost = async (userID, Content, Views, Share, PostImages, PostCategoryID) => {
     return axios.post(`${API_URL}/CreatePost`, {
-        userID: userID.id,
+        userID,
         Content,
         Views: 0,
         Share: 0,

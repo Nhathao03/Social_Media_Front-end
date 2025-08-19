@@ -3,7 +3,7 @@ import LeftSidebar from "../../layout/LeftSidebar";
 import RightSidebar from "../../layout/RightSidebar";
 import Footer from "../../layout/Footer";
 import { useEffect, useState } from "react";
-import { getUserById, UpdatePersonalInformation } from "../../services/auth";
+import { getUserById, UpdatePersonalInformation , ChangPassword, manageContact} from "../../services/auth";
 import { getAllAddress } from "../../services/address";
 import { UploadAvatarUser } from "../../services/uploadfile";
 import { jwtDecode } from "jwt-decode";
@@ -11,23 +11,23 @@ import { jwtDecode } from "jwt-decode";
 export default function EditProfile() {
     const [userData, setuserData] = useState(null);
     useEffect(() => {
-            const fetchUser = async () => {
-                try {
-                    const token = localStorage.getItem("token");
-                    if (!token) {
-                        console.error("No token found in localStorage");
-                        return;
-                    }
-                    const tokenData = jwtDecode(token);
-                    const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
-                    const userData = await getUserById(userIdBytoken);
-                    setuserData(userData.data);
-                } catch (error) {
-                    console.error("Failed to fetch user:", error);
+        const fetchUser = async () => {
+            try {
+                const token = localStorage.getItem("token");
+                if (!token) {
+                    console.error("No token found in localStorage");
+                    return;
                 }
-            };
-            fetchUser();
-        }, []);
+                const tokenData = jwtDecode(token);
+                const userIdBytoken = tokenData["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]
+                const userData = await getUserById(userIdBytoken);
+                setuserData(userData.data);
+            } catch (error) {
+                console.error("Failed to fetch user:", error);
+            }
+        };
+        fetchUser();
+    }, []);
 
     return (
         <div className="wrapper">
@@ -143,7 +143,7 @@ const PersonalInformationTab = ({ userData }) => {
             // Create preview URL
             const previewUrl = URL.createObjectURL(file);
             setPreviewImage(previewUrl);
-            
+
             try {
                 const response = await UploadAvatarUser(file);
                 if (response.data) {
@@ -197,9 +197,9 @@ const PersonalInformationTab = ({ userData }) => {
                                         />
                                         <label className="p-image position-absolute" style={{ cursor: 'pointer' }}>
                                             <i className="ri-pencil-line upload-button text-white"></i>
-                                            <input 
-                                                className="file-upload" 
-                                                type="file" 
+                                            <input
+                                                className="file-upload"
+                                                type="file"
                                                 accept="image/*"
                                                 onChange={handleChangeImage}
                                                 style={{ display: 'none' }}
@@ -324,7 +324,33 @@ const PersonalInformationTab = ({ userData }) => {
     );
 }
 
-const ChangePasswordTab = () => {
+const ChangePasswordTab = ({ userData }) => {
+    const [userID, setUserID] = useState("");
+    const [currentPass, setCurrentPass] = useState("");
+    const [newPass, setNewPass] = useState("");
+    const [verifyPass, setVerifyPass] = useState("");
+    const [message, setMessage] = useState("");
+
+    useEffect(() => {
+        if (userData) {
+            setUserID(userData.id || "");
+        }
+    }, [userData]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!userID) {
+            setMessage("No userID found.");
+            return;
+        }
+        try {
+            await ChangPassword(userID, currentPass, newPass, verifyPass);
+            setMessage("Updated success.");
+        } catch (err) {
+            console.error("Failed to updated personal information.");
+            setMessage("Failed to update personal information.");
+        }
+    }
     return (
         < div className="tab-pane fade" id="chang-pwd" role="tabpanel" >
             <div className="card">
@@ -334,7 +360,7 @@ const ChangePasswordTab = () => {
                     </div>
                 </div>
                 <div className="card-body">
-                    <form>
+                    <form onSubmit={handleSubmit}>
                         <div className="form-group">
                             <label htmlFor="cpass" className="form-label">
                                 Current Password:
@@ -347,6 +373,7 @@ const ChangePasswordTab = () => {
                                 className="form-control"
                                 id="cpass"
                                 defaultValue=""
+                                onChange={(e) => setCurrentPass(e.target.value)}
                             />
                         </div>
                         <div className="form-group">
@@ -358,6 +385,7 @@ const ChangePasswordTab = () => {
                                 className="form-control"
                                 id="npass"
                                 defaultValue=""
+                                onChange={(e) => setNewPass(e.target.value)}
                             />
                         </div>
                         <div className="form-group">
@@ -369,6 +397,7 @@ const ChangePasswordTab = () => {
                                 className="form-control"
                                 id="vpass"
                                 defaultValue=""
+                                onChange={(e) => setVerifyPass(e.target.value)}
                             />
                         </div>
                         <button type="submit" className="btn btn-primary me-2">
@@ -520,7 +549,40 @@ const EmailandSMSTab = () => {
     );
 }
 
-const ManageContactTab = () => {
+const ManageContactTab = ({ userData }) => {
+    const [userID, setUserID] = useState("");
+    const [phoneNumber, setPhoneNumber] = useState("");
+    const [email, setEmail] = useState("");
+    const [message, setMessage] = useState("");
+    const [messageType, setMessageType] = useState(""); 
+
+    useEffect(() => {
+        if (userData) {
+            setPhoneNumber(userData.phoneNumber ?? "");
+            setEmail(userData.email ?? "");
+            setUserID(userData.id);
+        }
+    }, [userData]);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!userData) {
+            console.error("No user data found.");
+            setMessage("No user data found.");
+            setMessageType("error");
+            return;
+        }
+        try {
+            await manageContact(userID, phoneNumber); 
+            setMessage("Contact information updated successfully.");
+            setMessageType("success");
+        } catch (err) {
+            console.error("Failed to update personal information.");
+            setMessage("Failed to update personal information.");
+            setMessageType("error");
+        }
+    };
+
     return (
         <div className="tab-pane fade" id="manage-contact" role="tabpanel">
             <div className="card">
@@ -530,7 +592,17 @@ const ManageContactTab = () => {
                     </div>
                 </div>
                 <div className="card-body">
-                    <form>
+                    {message && (
+                        <div
+                            className={`alert ${
+                                messageType === "success" ? "alert-success" : "alert-danger"
+                            }`}
+                            role="alert"
+                        >
+                            {message}
+                        </div>
+                    )}
+                    <form onSubmit={handleSubmit}>
                         <div className="form-group">
                             <label htmlFor="cno" className="form-label">
                                 Contact Number:
@@ -539,7 +611,8 @@ const ManageContactTab = () => {
                                 type="text"
                                 className="form-control"
                                 id="cno"
-                                defaultValue="001 2536 123 458"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
                             />
                         </div>
                         <div className="form-group">
@@ -550,7 +623,8 @@ const ManageContactTab = () => {
                                 type="text"
                                 className="form-control"
                                 id="email"
-                                defaultValue="Bnijone@demo.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                             />
                         </div>
                         <div className="form-group">
@@ -567,7 +641,15 @@ const ManageContactTab = () => {
                         <button type="submit" className="btn btn-primary me-2">
                             Submit
                         </button>
-                        <button type="reset" className="btn bg-soft-danger">
+                        <button
+                            type="reset"
+                            className="btn bg-soft-danger"
+                            onClick={() => {
+                                setPhoneNumber(userData?.phoneNumber ?? "");
+                                setEmail(userData?.email ?? "");
+                                setMessage("");
+                            }}
+                        >
                             Cancel
                         </button>
                     </form>
@@ -575,4 +657,5 @@ const ManageContactTab = () => {
             </div>
         </div>
     );
-}
+};
+

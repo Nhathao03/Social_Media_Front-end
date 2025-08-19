@@ -37,10 +37,12 @@ export const getCurrentUser = () => {
 }
 
 export const getUserById = async (userID) => {
-    return axios.get(`${API_URL}/GetUserById`, {
-        params: { userID }
+    return axios.get(`${API_URL}/GetUserById/${userID}`, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
     });
-};
+}
 
 export const findUser = async (stringData) => {
     return axios.get(`${API_URL}/findUser/${stringData}`, {
@@ -66,6 +68,42 @@ export const UpdatePersonalInformation = async (userID, fullname, addressID, bir
     );
 }
 
+export const ChangPassword = async (userID, currentPass, newPass, verifyPass) => {
+    return axios.put(`${API_URL}/ChangePassword`, {
+        userID,
+        currentPass, 
+        newPass,
+        verifyPass
+    }, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    }
+    );
+}
+
+export const manageContact = async (userID, phoneNumber) => {
+    return axios.put(`${API_URL}/ManageContact`, {
+        userID,
+        phoneNumber
+    }, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    });
+}
+
+export const UpdateBackgroundUser = async (userID, backgroundImage) => {
+    return axios.put(`${API_URL}/UpdateBackgroundUser`, {
+        userID,
+        backgroundImage
+    }, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    });
+}
+
 export const google_login = async () => {
     return axios.get(`${API_URL}/google-login`);
 }
@@ -77,3 +115,25 @@ export const decodeToken = async (token) => {
         }
     });
 };
+
+export const forgotpassword = async (email) => {
+    return axios.post(`${API_URL}/forgot-password`, {
+        email
+    }, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    });
+}
+
+export const resetPassword = async (email, newPassword, Otp) => {
+    return axios.post(`${API_URL}/reset-password`, {
+        email,
+        newPassword,
+        Otp
+    }, {
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    });
+}

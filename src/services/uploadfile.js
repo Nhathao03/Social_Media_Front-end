@@ -34,3 +34,14 @@ export const UploadAvatarUser = async (file) => {
         }
     });
 }
+
+export const UploadBackgroundUser = async (file) => {   
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return axios.post(`${API_URL}/UploadBackgroundUser`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        }
+    });
+}

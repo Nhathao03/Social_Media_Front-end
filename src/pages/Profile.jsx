@@ -487,19 +487,13 @@ const TimeLineRightContent = ({ userData }) => {
     };
     //Check image if have change
     const handleChangeImage = async (e) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const files = Array.from(e.target.files);
-            const uploadedUrls = await Promise.all(files.map(async (file) => {
-                return await UploadFileComment(file);
-            }));
-            const ListUrl = uploadedUrls.map((url) => {
-                return {
-                    Url: url.data
-                }
-            });
-            setImageComment(ListUrl);
-        }
-    };
+    if (e.target.files && e.target.files.length > 0) {
+        const file = e.target.files[0]; // Get the first file only
+        const uploadedUrl = await UploadFileComment(file); // Upload the single file
+        const ListUrl = [{ Url: uploadedUrl.data }]; // Create a single-item array
+        setImageComment(ListUrl); // Update state with the single URL
+    }
+};
     //handle submit comment
     const handleSubmitComment = async (e, postID) => {
         e.preventDefault();
@@ -508,7 +502,8 @@ const TimeLineRightContent = ({ userData }) => {
             return;
         }
         try {
-            await createComment(userData, postID, content, ImageCmt, sticker);
+            const ImageComment = ImageCmt && ImageCmt.length > 0 ? ImageCmt[0].Url : null;
+            await createComment(user, postID, content, ImageComment, sticker);
             setMessage("Comment created successfully!");
         } catch (error) {
             setMessage(error.response?.data || "Failed to create comment.");
@@ -1039,18 +1034,6 @@ const Friends = () => {
                             <li>
                                 <a className="nav-link active" data-bs-toggle="pill" href="#pill-all-friends" data-bs-target="#all-friends">All Friends</a>
                             </li>
-                            <li>
-                                <a className="nav-link" data-bs-toggle="pill" href="#pill-recently-add" data-bs-target="#recently-add">Recently Added</a>
-                            </li>
-                            <li>
-                                <a className="nav-link" data-bs-toggle="pill" href="#pill-closefriends" data-bs-target="#closefriends"> Close friends</a>
-                            </li>
-                            <li>
-                                <a className="nav-link" data-bs-toggle="pill" href="#pill-home" data-bs-target="#home-town"> Home/Town</a>
-                            </li>
-                            <li>
-                                <a className="nav-link" data-bs-toggle="pill" href="#pill-following" data-bs-target="#following">Following</a>
-                            </li>
                         </ul>
                         <div className="tab-content">
                             <div className="tab-pane fade active show" id="all-friends" role="tabpanel">
@@ -1074,146 +1057,6 @@ const Friends = () => {
                                                                 <i className="ri-check-line me-1 text-white"></i> Friend
                                                             </span>
                                                             <div className="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton01">
-                                                                <a className="dropdown-item" href="#">Get Notification</a>
-                                                                <a className="dropdown-item" href="#">Close Friend</a>
-                                                                <a className="dropdown-item" href="#">Unfollow</a>
-                                                                <a className="dropdown-item" href="#">Unfriend</a>
-                                                                <a className="dropdown-item" href="#">Block</a>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="tab-pane fade" id="recently-add" role="tabpanel">
-                                <div className="card-body p-0">
-                                    <div className="row">
-                                        <div className="col-md-6 col-lg-6 mb-3">
-                                            <div className="iq-friendlist-block">
-                                                <div className="d-flex align-items-center justify-content-between">
-                                                    <div className="d-flex align-items-center">
-                                                        <a href="#">
-                                                            <img src="/src/assets/images/user/07.jpg" alt="profile-img" className="img-fluid" />
-                                                        </a>
-                                                        <div className="friend-info ms-3">
-                                                            <h5>Otto Matic</h5>
-                                                            <p className="mb-0">4  friends</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="card-header-toolbar d-flex align-items-center">
-                                                        <div className="dropdown">
-                                                            <span className="dropdown-toggle btn btn-secondary me-2" id="dropdownMenuButton31" data-bs-toggle="dropdown" aria-expanded="true" role="button">
-                                                                <i className="ri-check-line me-1 text-white"></i> Friend
-                                                            </span>
-                                                            <div className="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton31">
-                                                                <a className="dropdown-item" href="#">Get Notification</a>
-                                                                <a className="dropdown-item" href="#">Close Friend</a>
-                                                                <a className="dropdown-item" href="#">Unfollow</a>
-                                                                <a className="dropdown-item" href="#">Unfriend</a>
-                                                                <a className="dropdown-item" href="#">Block</a>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="tab-pane fade" id="closefriends" role="tabpanel">
-                                <div className="card-body p-0">
-                                    <div className="row">
-                                        <div className="col-md-6 col-lg-6 mb-3">
-                                            <div className="iq-friendlist-block">
-                                                <div className="d-flex align-items-center justify-content-between">
-                                                    <div className="d-flex align-items-center">
-                                                        <a href="#">
-                                                            <img src="/src/assets/images/user/17.jpg" alt="profile-img" className="img-fluid" />
-                                                        </a>
-                                                        <div className="friend-info ms-3">
-                                                            <h5>Hal Appeno</h5>
-                                                            <p className="mb-0">25  friends</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="card-header-toolbar d-flex align-items-center">
-                                                        <div className="dropdown">
-                                                            <span className="dropdown-toggle btn btn-secondary me-2" id="dropdownMenuButton48" data-bs-toggle="dropdown" aria-expanded="true" role="button">
-                                                                <i className="ri-check-line me-1 text-white"></i> Friend
-                                                            </span>
-                                                            <div className="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton48">
-                                                                <a className="dropdown-item" href="#">Get Notification</a>
-                                                                <a className="dropdown-item" href="#">Close Friend</a>
-                                                                <a className="dropdown-item" href="#">Unfollow</a>
-                                                                <a className="dropdown-item" href="#">Unfriend</a>
-                                                                <a className="dropdown-item" href="#">Block</a>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="tab-pane fade" id="home-town" role="tabpanel">
-                                <div className="card-body p-0">
-                                    <div className="row">
-                                        <div className="col-md-6 col-lg-6 mb-3">
-                                            <div className="iq-friendlist-block">
-                                                <div className="d-flex align-items-center justify-content-between">
-                                                    <div className="d-flex align-items-center">
-                                                        <a href="#">
-                                                            <img src="/src/assets/images/user/07.jpg" alt="profile-img" className="img-fluid" />
-                                                        </a>
-                                                        <div className="friend-info ms-3">
-                                                            <h5>Maya Didas</h5>
-                                                            <p className="mb-0">12  friends</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="card-header-toolbar d-flex align-items-center">
-                                                        <div className="dropdown">
-                                                            <span className="dropdown-toggle btn btn-secondary me-2" id="dropdownMenuButton53" data-bs-toggle="dropdown" aria-expanded="true" role="button">
-                                                                <i className="ri-check-line me-1 text-white"></i> Friend
-                                                            </span>
-                                                            <div className="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton53">
-                                                                <a className="dropdown-item" href="#">Get Notification</a>
-                                                                <a className="dropdown-item" href="#">Close Friend</a>
-                                                                <a className="dropdown-item" href="#">Unfollow</a>
-                                                                <a className="dropdown-item" href="#">Unfriend</a>
-                                                                <a className="dropdown-item" href="#">Block</a>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="tab-pane fade" id="following" role="tabpanel">
-                                <div className="card-body p-0">
-                                    <div className="row">
-                                        <div className="col-md-6 col-lg-6 mb-3">
-                                            <div className="iq-friendlist-block">
-                                                <div className="d-flex align-items-center justify-content-between">
-                                                    <div className="d-flex align-items-center">
-                                                        <a href="#">
-                                                            <img src="/src/assets/images/user/10.jpg" alt="profile-img" className="img-fluid" />
-                                                        </a>
-                                                        <div className="friend-info ms-3">
-                                                            <h5>Anna Mull</h5>
-                                                            <p className="mb-0">6  friends</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="card-header-toolbar d-flex align-items-center">
-                                                        <div className="dropdown">
-                                                            <span className="dropdown-toggle btn btn-secondary me-2" id="dropdownMenuButton59" data-bs-toggle="dropdown" aria-expanded="true" role="button">
-                                                                <i className="ri-check-line me-1 text-white"></i> Friend
-                                                            </span>
-                                                            <div className="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton59">
                                                                 <a className="dropdown-item" href="#">Get Notification</a>
                                                                 <a className="dropdown-item" href="#">Close Friend</a>
                                                                 <a className="dropdown-item" href="#">Unfollow</a>
